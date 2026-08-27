@@ -1,0 +1,41 @@
+{
+  "schema": 1,
+  "result": "draft",
+  "project_version": "0.1.0",
+  "git_commit": "REPLACE_WITH_COMMIT",
+  "tester": "REPLACE_WITH_GITHUB_HANDLE",
+  "device": {
+    "sku": "Surface_Laptop_7th_Edition_2037",
+    "form_factor": "15-inch",
+    "processor": "Snapdragon X Elite",
+    "memory_gib": 16,
+    "uefi_version": "REPLACE"
+  },
+  "kernel": "REPLACE_WITH_UNAME_R",
+  "firmware_source": "windows-partition",
+  "checks": {
+    "automatic_dtb": "untested",
+    "live_boot": "untested",
+    "install_and_reboot": "untested",
+    "nvme": "untested",
+    "keyboard": "untested",
+    "touchpad": "untested",
+    "haptic_click": "untested",
+    "gpu": "untested",
+    "backlight": "untested",
+    "wifi": "untested",
+    "bluetooth": "untested",
+    "audio": "untested",
+    "battery": "untested",
+    "usb_a": "untested",
+    "usb_c": "untested",
+    "external_display": "untested",
+    "suspend_resume": "untested",
+    "camera": "untested",
+    "touchscreen": "known-broken",
+    "fedora_update": "untested",
+    "fallback_kernel": "untested"
+  },
+  "notes": "Remove all personal identifiers before submission."
+}
+

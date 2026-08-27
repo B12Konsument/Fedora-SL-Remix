@@ -1,0 +1,42 @@
+name: Bug report
+description: Report a reproducible build, installer, or runtime defect
+title: "[bug] "
+labels: [bug]
+body:
+  - type: checkboxes
+    attributes:
+      label: Safety checks
+      options:
+        - label: I removed serial numbers, MAC addresses, keys, and proprietary firmware from logs.
+          required: true
+        - label: I checked the documented known limitations.
+          required: true
+  - type: input
+    id: version
+    attributes:
+      label: Release or commit
+    validations:
+      required: true
+  - type: dropdown
+    id: path
+    attributes:
+      label: Installation path
+      options:
+        - install.sh on official Fedora
+        - Public remix ISO
+        - Private firmware ISO
+        - Build pipeline
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Reproduction steps and expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      render: shell
+

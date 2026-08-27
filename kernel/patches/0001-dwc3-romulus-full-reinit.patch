@@ -1,0 +1,43 @@
+From: Fedora SL7 Remix contributors <noreply@example.invalid>
+Subject: [PATCH] usb: dwc3: qcom: reinitialize Romulus MP PHY after resume
+
+Fedora 44's 7.1 kernel moved full-reinitialization policy into the DWC3 glue
+properties. Map the existing snps,reinit-phy-on-resume device-tree property to
+that policy and enable it on the flattened Romulus multi-port controller.
+
+This is the 7.1 rebase of the three-patch DWC3 series referenced by the SL7
+hardware notes.
+---
+ arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi | 4 ++++
+ drivers/usb/dwc3/dwc3-qcom.c                              | 2 ++
+ 2 files changed, 6 insertions(+)
+
+diff --git a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
+--- a/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
++++ b/arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi
+@@ -1725,6 +1725,10 @@ &usb_mp {
+ 	status = "okay";
+ };
+ 
++&usb_mp {
++	snps,reinit-phy-on-resume;
++};
++
+ &usb_mp_hsphy0 {
+ 	vdd-supply = <&vreg_l2e>;
+ 	vdda12-supply = <&vreg_l2j>;
+diff --git a/drivers/usb/dwc3/dwc3-qcom.c b/drivers/usb/dwc3/dwc3-qcom.c
+--- a/drivers/usb/dwc3/dwc3-qcom.c
++++ b/drivers/usb/dwc3/dwc3-qcom.c
+@@ -705,6 +705,8 @@ static int dwc3_qcom_probe(struct platform_device *pdev)
+ 	probe_data.res = &res;
+ 	probe_data.ignore_clocks_and_resets = true;
+ 	probe_data.properties = DWC3_DEFAULT_PROPERTIES;
++	probe_data.properties.needs_full_reinit =
++		device_property_read_bool(dev, "snps,reinit-phy-on-resume");
+ 	ret = dwc3_core_probe(&probe_data);
+ 	if (ret)  {
+ 		ret = dev_err_probe(dev, ret, "failed to register DWC3 Core\n");
+-- 
+2.51.0
+

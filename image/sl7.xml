@@ -1,0 +1,18 @@
+<image>
+    <packages type="bootstrap" patternType="plusRecommended" profiles="KDE-Desktop-Live">
+        <ignore name="fedora-logos"/>
+        <package name="fedora-remix-logos"/>
+    </packages>
+    <packages type="image" patternType="plusRecommended" profiles="KDE-Desktop-Live">
+        <package name="fedora-sl7-remix-support"/>
+        <package name="iptsd-sl7"/>
+        <package name="sl7-mac"/>
+        <package name="qcom-firmware-extract"/>
+        <package name="qcom-firmware"/>
+        <package name="kernel-uki-dtbloader"/>
+        <package name="alsa-ucm"/>
+        <package name="kdialog"/>
+        <package name="konsole"/>
+        <package name="msitools"/>
+    </packages>
+</image>

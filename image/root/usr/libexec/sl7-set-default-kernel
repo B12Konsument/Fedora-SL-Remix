@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+
+mapfile -t kernels < <(find /boot -maxdepth 1 -type f -name 'vmlinuz-*.sl7.*' -print | sort -V)
+((${#kernels[@]})) || exit 0
+selected="${kernels[-1]}"
+current="$(grubby --default-kernel 2>/dev/null || true)"
+if [[ "$current" != "$selected" ]]; then
+    grubby --set-default "$selected"
+    printf 'Fedora SL7 Remix selected %s as the default kernel.\n' "$selected"
+fi
+

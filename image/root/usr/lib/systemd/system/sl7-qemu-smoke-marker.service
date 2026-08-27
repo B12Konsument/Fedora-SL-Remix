@@ -1,0 +1,14 @@
+# SPDX-License-Identifier: GPL-2.0-only
+[Unit]
+Description=Report that the Fedora SL7 live environment reached userspace in QEMU
+ConditionVirtualization=qemu
+ConditionPathExists=/dev/ttyAMA0
+After=multi-user.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/bin/bash -c 'printf "FEDORA_SL7_LIVE_READY\n" > /dev/ttyAMA0'
+
+[Install]
+WantedBy=multi-user.target
+

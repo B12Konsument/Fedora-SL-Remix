@@ -1,0 +1,46 @@
+# Fedora SL7 Remix AArch64 live media configuration
+set default="0"
+
+function load_video {
+    insmod efi_gop
+    insmod efi_uga
+    insmod all_video
+}
+set basicgfx="nomodeset"
+
+load_video
+set gfxpayload=keep
+insmod gzio
+insmod part_gpt
+insmod ext2
+
+terminal_input console
+terminal_output ${terminal_output}
+set timeout=${boot_timeout}
+set timeout_style=${boot_timeout_style}
+search ${search_params}
+
+menuentry "Start ${title} (automatic hardware detection)" --class fedora --class gnu-linux --class gnu --class os {
+    linux ($$root)${bootpath}/${kernel_file} ${boot_options}
+    initrd ($$root)${bootpath}/${initrd_file}
+}
+menuentry "Test this media & start ${title}" --class fedora --class gnu-linux --class gnu --class os {
+    linux ($$root)${bootpath}/${kernel_file} ${boot_options} rd.live.check
+    initrd ($$root)${bootpath}/${initrd_file}
+}
+submenu "Troubleshooting -->" {
+    menuentry "Start ${title} in basic graphics mode" --class fedora --class gnu-linux --class gnu --class os {
+        linux ($$root)${bootpath}/${kernel_file} ${boot_options} $${basicgfx}
+        initrd ($$root)${bootpath}/${initrd_file}
+    }
+    menuentry "Force Surface Laptop 7 13.8-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
+        linux ($$root)${bootpath}/${kernel_file} ${boot_options}
+        devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus13.dtb
+        initrd ($$root)${bootpath}/${initrd_file}
+    }
+    menuentry "Force Surface Laptop 7 15-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
+        linux ($$root)${bootpath}/${kernel_file} ${boot_options}
+        devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus15.dtb
+        initrd ($$root)${bootpath}/${initrd_file}
+    }
+}

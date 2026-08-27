@@ -1,0 +1,40 @@
+{
+  "schema": 1,
+  "base": "fedora-kernel-distgit",
+  "patches": [
+    {"id":"hid-bus-spi","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/e7caa952eac7.patch","sha256":"c72b9c4e3ba8380493475e1421e26eb4803a3a38fa78e96de04d8d577e42e53b","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-skeleton","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/918ac2029580.patch","sha256":"33be649e0f7c1b895fb8feb78d5c81635c56f4ec0e772d9dfcff9d9b16a179d0","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-layer","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/5f7cd9d17de2.patch","sha256":"3a9f324cfeaf4002b7a79c0b7df683a9d72c4f4dc36401a4083b232e7f438321","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-protocol","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/7b91684a9b3c.patch","sha256":"73b641073680f514cc355da490dfeaaf096cd0237643b3b93c75bd916e4af594","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-tracing","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/7d208fe57c2a.patch","sha256":"a91a444c45e56ea4e912d825d3ce1dc8f291b71c3ac44242595b6d4ab1b92ae7","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-acpi","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/50fffb8461a6.patch","sha256":"dc1ef729aec259315c7618f0325f4b0c4cd081de70a84f5b33b0031e2006428a","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-device-tree","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/31eb39fc4db4.patch","sha256":"42385cf3fc760dfb88db8cd82ab6a157cc16813460be2e04fbad2c7e674b2b7f","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-binding","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/9f3c98750e34.patch","sha256":"fdea59ec0fe768939cfb399e685bddc807abbbff7387f0051ad75d53dc9414f2","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-power-management","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/f746e6417cd8.patch","sha256":"bf80d382ba0ca31af9bf9a342e8391708f0de154084b57b269c29cf0a7ad6a8e","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-panel-follower","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/1c6b8254550b.patch","sha256":"9344b46b65ce97d32436fd27ce4d2a2bc7d06660f5bd4cbb36febdca64181f4f","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-hid-ilitek-quirks","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/5f3214c1f462.patch","sha256":"9a9b3055f0c2091e79fa3ac6959ae67c7293094b250bb830375fe2308961d570","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"spi-geni-fragmentation-compat","path":"kernel/patches/0002-spi-geni-fragmentation-compat.patch","license":"GPL-2.0-only","upstream_status":"project-context-adapter-for-linux-7.1.10"},
+    {
+      "id":"romulus-spi-dma-device-tree",
+      "url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/cdf898f43cd9.patch",
+      "sha256":"19542801c21aca148c9cd3034007194acaae04fe059c1862b5782b739c650ca5",
+      "license":"GPL-2.0-only",
+      "upstream_status":"downstream-required-for-linux-7.1.10",
+      "include":[
+        "arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi",
+        "drivers/dma/qcom/gpi.c",
+        "drivers/spi/spi-geni-qcom.c",
+        "include/dt-bindings/dma/qcom-gpi.h",
+        "include/linux/dma/qcom-gpi-dma.h"
+      ]
+    },
+    {"id":"spi-geni-fragmentation-fedora-restore","path":"kernel/patches/0003-spi-geni-fragmentation-fedora-restore.patch","license":"GPL-2.0-only","upstream_status":"project-context-adapter-for-linux-7.1.10"},
+    {"id":"romulus-ath12k-enumeration","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2e8c2d992624.patch","sha256":"0707bff1aee51bb8e03ade2d17c5cc976988694becfd7b2ef31587e6a3fc318e","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"romulus-camera","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/0e9944fa4cf2.patch","sha256":"a4d8b0b6152ee73ae00ffd3efda4d8fe819f7e7a858c86f839f061491d94f755","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
+    {"id":"dwc3-resume-rebase","path":"kernel/patches/0001-dwc3-romulus-full-reinit.patch","license":"GPL-2.0-only","upstream_status":"project-rebase-for-linux-7.1.10"}
+  ],
+  "semantic_skips": [
+    {"change":"Surface Laptop 7 duplicate battery removal","reason":"present in Linux 7.1.10"},
+    {"change":"PS883x regulator shutdown","reason":"equivalent regulator and clock teardown is present in Linux 7.1.10"}
+  ]
+}

@@ -1,0 +1,12 @@
+[Unit]
+Description=Keep the Fedora SL7 Remix kernel as the default boot entry
+ConditionPathExists=/boot
+After=local-fs.target
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/sl7-set-default-kernel
+
+[Install]
+WantedBy=multi-user.target
+

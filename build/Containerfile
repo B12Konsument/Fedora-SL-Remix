@@ -1,0 +1,16 @@
+# SPDX-License-Identifier: GPL-2.0-only
+FROM registry.fedoraproject.org/fedora@sha256:9c8b291e256262b91aac5b3da50ea323760d0a6b449c6d6ad5f01d9550d48d2a
+
+RUN dnf -y install \
+        bash bc binutils bison bzip2 cpio curl dtc diffutils dislocker dosfstools dwarves erofs-utils \
+        edk2-aarch64 fedpkg file findutils flex gcc gcc-c++ git-core glibc-devel \
+        grub2-tools-extra gzip jq kernel-rpm-macros kiwi-cli \
+        kiwi-systemdeps-iso-media make meson msitools ninja-build openssl \
+        openssl-devel patch patchutils perl-generators pesign \
+        python3 python3-devel qemu-system-aarch64-core ripgrep rpm-build rpmdevtools rsync sed shadow-utils \
+        shellcheck squashfs-tools systemd-devel tar util-linux which xorriso \
+        xz zstd createrepo_c dnf5-plugins \
+    && dnf clean all
+
+WORKDIR /workspace
+ENTRYPOINT ["/workspace/scripts/build-image.sh"]

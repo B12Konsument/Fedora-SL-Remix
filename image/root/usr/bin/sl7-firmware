@@ -1,0 +1,125 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+
+readonly LOCK_FILE="${SL7_SOURCE_LOCK:-/usr/share/fedora-sl7-remix/sources.lock.json}"
+readonly FIRMWARE_ROOT="${SL7_FIRMWARE_ROOT:-/usr/lib/firmware/updates/qcom/x1e80100/microsoft}"
+readonly ROMULUS_ROOT="$FIRMWARE_ROOT/Romulus"
+readonly ROOT_FILES=(qcdxkmsuc8380.mbn)
+readonly ROMULUS_FILES=(
+    adsp_dtbs.elf adspr.jsn adsps.jsn adspua.jsn battmgr.jsn
+    cdsp_dtbs.elf cdspr.jsn qcadsp8380.mbn qccdsp8380.mbn
+)
+
+die() {
+    printf 'sl7-firmware: error: %s\n' "$*" >&2
+    exit 1
+}
+
+usage() {
+    cat <<'EOF'
+Usage:
+  sl7-firmware status
+  sl7-firmware install --msi PATH
+  sl7-firmware install --download
+  sl7-firmware install --windows-root PATH
+
+The installed files are proprietary Microsoft firmware. They are extracted for
+use on this device and must not be added to a public ISO or redistributed.
+EOF
+}
+
+status() {
+    local missing=0 file
+    for file in "${ROOT_FILES[@]}"; do
+        if [[ -s "$FIRMWARE_ROOT/$file" ]]; then
+            printf 'present  %s\n' "$FIRMWARE_ROOT/$file"
+        else
+            printf 'missing  %s\n' "$FIRMWARE_ROOT/$file"
+            missing=1
+        fi
+    done
+    for file in "${ROMULUS_FILES[@]}"; do
+        if [[ -s "$ROMULUS_ROOT/$file" ]]; then
+            printf 'present  %s\n' "$ROMULUS_ROOT/$file"
+        else
+            printf 'missing  %s\n' "$ROMULUS_ROOT/$file"
+            missing=1
+        fi
+    done
+    return "$missing"
+}
+
+copy_named_file() {
+    local search_root=$1 name=$2 destination=$3 found
+    found="$(find "$search_root" -type f -iname "$name" -print -quit)"
+    [[ -n "$found" ]] || die "required firmware file not found: $name"
+    install -Dm0644 "$found" "$destination/$name"
+}
+
+install_from_tree() {
+    local tree=$1 file
+    mkdir -p "$FIRMWARE_ROOT" "$ROMULUS_ROOT"
+    for file in "${ROOT_FILES[@]}"; do
+        copy_named_file "$tree" "$file" "$FIRMWARE_ROOT"
+    done
+    for file in "${ROMULUS_FILES[@]}"; do
+        copy_named_file "$tree" "$file" "$ROMULUS_ROOT"
+    done
+    restorecon -RF "$FIRMWARE_ROOT" 2>/dev/null || true
+    if [[ "$FIRMWARE_ROOT" == /usr/lib/firmware/* && -d /etc/dracut.conf.d ]]; then
+        dracut --regenerate-all --force
+    fi
+    printf 'Firmware installed successfully. Reboot before testing hardware.\n'
+}
+
+install_msi() {
+    local msi=$1 expected actual temp
+    [[ -f "$msi" ]] || die "MSI does not exist: $msi"
+    [[ -r "$LOCK_FILE" ]] || die "source lock is missing: $LOCK_FILE"
+    expected="$(jq -er '.sources[] | select(.id == "surface-laptop-7-msi") | .sha256' "$LOCK_FILE")"
+    actual="$(sha256sum "$msi" | cut -d' ' -f1)"
+    [[ "$actual" == "$expected" ]] || die "MSI SHA-256 mismatch (expected $expected, got $actual)"
+    temp="$(mktemp -d /var/tmp/sl7-firmware.XXXXXX)"
+    trap 'find "$temp" -depth -delete' RETURN
+    msiextract -C "$temp" "$msi" >/dev/null
+    install_from_tree "$temp"
+    find "$temp" -depth -delete
+    trap - RETURN
+}
+
+command=${1:-}
+case "$command" in
+    status)
+        status
+        ;;
+    install)
+        ((EUID == 0)) || die 'run firmware installation as root'
+        option=${2:-}
+        case "$option" in
+            --msi)
+                [[ -n ${3:-} ]] || die '--msi requires a path'
+                install_msi "$3"
+                ;;
+            --download)
+                [[ -r "$LOCK_FILE" ]] || die "source lock is missing: $LOCK_FILE"
+                url="$(jq -er '.sources[] | select(.id == "surface-laptop-7-msi") | .url' "$LOCK_FILE")"
+                temp="$(mktemp /var/tmp/SurfaceLaptop7.XXXXXX.msi)"
+                trap 'rm -f -- "$temp"' EXIT
+                curl --fail --location --retry 3 --output "$temp" "$url"
+                install_msi "$temp"
+                ;;
+            --windows-root)
+                [[ -d ${3:-} ]] || die '--windows-root requires a mounted Windows directory'
+                [[ -d "$3/Windows/System32/DriverStore" ]] || die 'the selected directory is not a Windows system volume'
+                install_from_tree "$3/Windows/System32/DriverStore"
+                ;;
+            *) usage >&2; exit 2 ;;
+        esac
+        ;;
+    -h|--help|help|'')
+        usage
+        ;;
+    *) die "unknown command: $command" ;;
+esac

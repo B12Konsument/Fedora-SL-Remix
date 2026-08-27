@@ -1,0 +1,44 @@
+name: Repository checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y jq libxml2-utils ripgrep shellcheck
+      - name: Validate repository inputs
+        run: ./tests/run.sh
+  build-packages-and-prepare-kernel:
+    runs-on: ubuntu-24.04-arm
+    timeout-minutes: 90
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install the container runtime
+        run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Build the pinned Fedora builder
+        run: sudo podman build --tag fedora-sl7-remix-builder --file build/Containerfile build
+      - name: Verify locked sources and build integration RPMs
+        run: |
+          sudo podman run --rm --security-opt label=disable \
+            --entrypoint /bin/bash \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            localhost/fedora-sl7-remix-builder:latest \
+            -lc '/workspace/scripts/fetch-sources.sh && SKIP_KERNEL_BUILD=1 /workspace/scripts/build-rpms.sh'
+      - name: Verify the Fedora kernel patch queue
+        run: |
+          sudo podman run --rm --security-opt label=disable \
+            --entrypoint /bin/bash \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            localhost/fedora-sl7-remix-builder:latest \
+            -lc '/workspace/scripts/build-kernel.sh --prepare-only'

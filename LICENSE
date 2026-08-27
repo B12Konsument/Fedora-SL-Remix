@@ -1,0 +1,22 @@
+Fedora SL7 Remix project license notice
+
+Copyright (C) 2026 Fedora SL7 Remix contributors
+
+All original executable project code and packaging in this repository is free
+software: you can redistribute it and/or modify it under the terms of the GNU
+General Public License as published by the Free Software Foundation, version 2
+only.
+
+This program is distributed in the hope that it will be useful, but WITHOUT ANY
+WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR A
+PARTICULAR PURPOSE. See <https://www.gnu.org/licenses/old-licenses/gpl-2.0.html>
+for the complete GPL-2.0 license text.
+
+Original documentation is licensed under Creative Commons Attribution-
+ShareAlike 4.0 International. See
+<https://creativecommons.org/licenses/by-sa/4.0/legalcode>.
+
+Fetched and externally authored material retains its original license. See
+LICENSES.md and sources.lock.json. Microsoft firmware is not licensed by this
+project and is never covered by this notice.
+

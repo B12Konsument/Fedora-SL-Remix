@@ -1,0 +1,8 @@
+/.build/
+/out/
+/*.iso
+/*.iso.part-*
+/*.rpm
+/*.msi
+*.log
+

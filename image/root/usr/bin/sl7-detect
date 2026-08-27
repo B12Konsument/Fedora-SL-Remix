@@ -1,0 +1,56 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+
+json=0
+[[ ${1:-} == --json ]] && json=1
+sys_root=${SL7_SYS_ROOT:-}
+
+read_value() {
+    local path=$1
+    [[ -r "$path" ]] && tr -d '\0\n' < "$path" || true
+}
+
+sku="$(read_value "$sys_root/sys/class/dmi/id/product_sku")"
+product="$(read_value "$sys_root/sys/class/dmi/id/product_name")"
+compatible="$(read_value "$sys_root/sys/firmware/devicetree/base/compatible")"
+model=unknown
+size=unknown
+supported=false
+
+case "$sku" in
+    Surface_Laptop_7th_Edition_2036|Surface_Laptop_7th_Edition_For_Business_2036)
+        model=romulus13
+        size=13.8
+        supported=true
+        ;;
+    Surface_Laptop_7th_Edition_2037|Surface_Laptop_7th_Edition_For_Business_2037)
+        model=romulus15
+        size=15
+        supported=true
+        ;;
+esac
+
+if [[ "$supported" == false ]]; then
+    case "$compatible" in
+        *microsoft,romulus13*) model=romulus13; size=13.8; supported=true ;;
+        *microsoft,romulus15*) model=romulus15; size=15; supported=true ;;
+    esac
+fi
+
+if ((json)); then
+    jq -n \
+        --arg sku "$sku" \
+        --arg product "$product" \
+        --arg compatible "$compatible" \
+        --arg model "$model" \
+        --arg size "$size" \
+        --argjson supported "$supported" \
+        '{supported:$supported,model:$model,display_inches:$size,sku:$sku,product:$product,compatible:$compatible}'
+else
+    printf 'Supported: %s\nModel: %s\nDisplay: %s inches\nSystem SKU: %s\nProduct: %s\n' \
+        "$supported" "$model" "$size" "${sku:-unavailable}" "${product:-unavailable}"
+fi
+
+[[ "$supported" == true ]]

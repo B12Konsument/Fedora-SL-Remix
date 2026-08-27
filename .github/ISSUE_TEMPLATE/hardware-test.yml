@@ -1,0 +1,61 @@
+name: Surface Laptop 7 hardware test
+description: Submit a completed physical-device verification report
+title: "[hardware] "
+labels: [hardware-test]
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Remove serial numbers, MAC addresses, BitLocker data, and other personal identifiers. QEMU results do not belong in this form.
+  - type: dropdown
+    id: model
+    attributes:
+      label: Model
+      options:
+        - 13.8-inch consumer (SKU 2036)
+        - 13.8-inch business (SKU 2036)
+        - 15-inch consumer (SKU 2037)
+        - 15-inch business (SKU 2037)
+    validations:
+      required: true
+  - type: input
+    id: release
+    attributes:
+      label: Project release or commit
+      placeholder: v0.1.0 or full Git commit
+    validations:
+      required: true
+  - type: input
+    id: kernel
+    attributes:
+      label: Kernel
+      description: Output of uname -r
+    validations:
+      required: true
+  - type: dropdown
+    id: processor
+    attributes:
+      label: Processor
+      options:
+        - Snapdragon X Plus
+        - Snapdragon X Elite
+    validations:
+      required: true
+  - type: dropdown
+    id: firmware
+    attributes:
+      label: Firmware source
+      options:
+        - Existing Windows volume
+        - Pinned Microsoft MSI
+        - Firmware not installed
+    validations:
+      required: true
+  - type: textarea
+    id: report
+    attributes:
+      label: Completed report
+      description: Paste the completed hardware-tests/template.json and summarize failures.
+      render: json
+    validations:
+      required: true

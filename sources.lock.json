@@ -1,0 +1,95 @@
+{
+  "schema": 1,
+  "fedora_release": 44,
+  "generated": "2026-08-26",
+  "sources": [
+    {
+      "id": "fedora-44-container-aarch64",
+      "kind": "oci",
+      "url": "registry.fedoraproject.org/fedora",
+      "ref": "sha256:9c8b291e256262b91aac5b3da50ea323760d0a6b449c6d6ad5f01d9550d48d2a",
+      "sha256": "9c8b291e256262b91aac5b3da50ea323760d0a6b449c6d6ad5f01d9550d48d2a",
+      "license": "MIT AND Fedora-legal",
+      "upstream_status": "official-fedora-44-container",
+      "redistributable": true,
+      "purpose": "Pinned AArch64 Fedora 44 build environment"
+    },
+    {
+      "id": "fedora-kiwi-descriptions",
+      "kind": "git",
+      "url": "https://forge.fedoraproject.org/releng/kiwi-descriptions.git",
+      "ref": "dfc49a5a10f69941179fdadd96aa6a5984f7c677",
+      "archive_sha256": "0c3a87fe95c07c807a125ac7750daf40a8fae432fa95074f2453c40926c97542",
+      "license": "GPL-2.0-or-later",
+      "upstream_status": "official-fedora-44-image-description",
+      "redistributable": true,
+      "purpose": "Fedora 44 KDE Live KIWI description"
+    },
+    {
+      "id": "fedora-kernel-distgit",
+      "kind": "git",
+      "url": "https://src.fedoraproject.org/rpms/kernel.git",
+      "ref": "91556430a00ae9ee745d8fe582634f3a9133cd25",
+      "archive_sha256": "1da2e0225d18bb5969f5f081b9f0d423a8824641d846096a7f57d80ed3bfb1ff",
+      "license": "GPL-2.0-only",
+      "upstream_status": "official-fedora-44-kernel-packaging",
+      "redistributable": true,
+      "purpose": "Fedora 44 kernel 7.1.10-200 packaging"
+    },
+    {
+      "id": "iptsd-sl7",
+      "kind": "git",
+      "url": "https://github.com/alex-lentz/iptsd.git",
+      "ref": "3663e96e758145801c3cb1ce7c72f362d0d4a5f5",
+      "archive_sha256": "7f7e68fbe2e11c240eb20bda53a2e90fa808ba4857c981d1dbe341bfc1c95d55",
+      "license": "GPL-2.0-or-later",
+      "upstream_status": "surface-laptop-7-downstream-fork",
+      "redistributable": true,
+      "purpose": "Touchpad userspace daemon with SL7 haptic and resume fixes"
+    },
+    {
+      "id": "sl7-mac",
+      "kind": "git",
+      "url": "https://github.com/valeronm/sl7-mac.git",
+      "ref": "b0a562f27e79fc3dd35a0617eba1e96deee000d1",
+      "archive_sha256": "506fbc1cde0fc569e25bc5bb676de5528846ae471cfb419f05c582bbef7c5530",
+      "license": "MIT",
+      "upstream_status": "surface-laptop-7-downstream-project",
+      "redistributable": true,
+      "purpose": "Restore factory Wi-Fi and Bluetooth MAC addresses"
+    },
+    {
+      "id": "qcom-firmware-extract",
+      "kind": "git",
+      "url": "https://github.com/Radiicall/qcom-firmware-extract.git",
+      "ref": "bb6cc4db68a532826916d71dacbd6606ef45ecaa",
+      "archive_sha256": "1b369432ae96ec644fa5a94608d340553b40bf38392501a0916c36072a382bf3",
+      "license": "GPL-2.0-or-later",
+      "upstream_status": "surface-laptop-7-downstream-project",
+      "redistributable": true,
+      "purpose": "Firmware extraction from an existing Windows installation"
+    },
+    {
+      "id": "surface-laptop-7-notes",
+      "kind": "git",
+      "url": "https://github.com/bryce-hoehn/linux-surface-laptop-7.git",
+      "ref": "af765428493e13b84f06c23bdea4cedd3e58cf72",
+      "archive_sha256": "257e28f79aaa8f2832b470efdbf1718327cdffeaa550bfe974b8a96dcfc41a55",
+      "license": "NOASSERTION",
+      "upstream_status": "research-only-not-packaged",
+      "redistributable": false,
+      "purpose": "Hardware status and patch provenance; not packaged"
+    },
+    {
+      "id": "surface-laptop-7-msi",
+      "kind": "http",
+      "url": "https://download.microsoft.com/download/b7ca2c3f-d320-4795-be0f-529a0117abb4/SurfaceLaptop7_ARM_Win11_26100_26.053.36539.0.msi",
+      "filename": "SurfaceLaptop7_ARM_Win11_26100_26.053.36539.0.msi",
+      "sha256": "66b6e1ace7e5f01bc592cd4c9ae78aa30bbb0e04ab57491cd03ec2aaa6e1229b",
+      "license": "LicenseRef-Microsoft-Surface-Firmware",
+      "upstream_status": "official-microsoft-device-package",
+      "redistributable": false,
+      "purpose": "Optional private extraction of device-specific firmware"
+    }
+  ]
+}

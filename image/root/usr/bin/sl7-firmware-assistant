@@ -1,0 +1,29 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+
+if ! command -v kdialog >/dev/null; then
+    exec konsole -e bash -lc 'sudo sl7-firmware --help; read -rp "Press Enter to close..."'
+fi
+
+choice="$(kdialog --title 'Surface Laptop 7 firmware' --menu \
+    'Choose a firmware source. Extracted files are proprietary and must not be redistributed.' \
+    msi 'Select an official Surface Laptop 7 MSI file' \
+    download 'Download the pinned official Microsoft MSI' \
+    status 'Check installed firmware' 2>/dev/null || true)"
+
+case "$choice" in
+    msi)
+        file="$(kdialog --getopenfilename "$HOME" '*.msi|Microsoft installer (*.msi)' 2>/dev/null || true)"
+        [[ -n "$file" ]] || exit 0
+        konsole -e bash -lc "sudo sl7-firmware install --msi \"\$1\"; read -rp 'Press Enter to close...'" _ "$file"
+        ;;
+    download)
+        konsole -e bash -lc "sudo sl7-firmware install --download; read -rp 'Press Enter to close...'"
+        ;;
+    status)
+        konsole -e bash -lc "sudo sl7-firmware status; read -rp 'Press Enter to close...'"
+        ;;
+esac
+

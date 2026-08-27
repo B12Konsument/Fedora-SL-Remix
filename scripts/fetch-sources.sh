@@ -1,0 +1,64 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
+source "$PROJECT_ROOT/scripts/lib.sh"
+
+include_proprietary=0
+[[ ${1:-} == --include-proprietary ]] && include_proprietary=1
+
+require_command git
+require_command jq
+require_command sha256sum
+
+mkdir -p "$BUILD_ROOT/sources" "$BUILD_ROOT/downloads"
+
+while IFS= read -r source_json; do
+    id="$(jq -r .id <<<"$source_json")"
+    kind="$(jq -r .kind <<<"$source_json")"
+    redistributable="$(jq -r .redistributable <<<"$source_json")"
+
+    if [[ "$kind" == http && "$redistributable" == false && $include_proprietary -eq 0 ]]; then
+        log "Skipping non-redistributable source $id"
+        continue
+    fi
+
+    case "$kind" in
+        git)
+            destination="$BUILD_ROOT/sources/$id"
+            url="$(jq -r .url <<<"$source_json")"
+            ref="$(jq -r .ref <<<"$source_json")"
+            expected="$(jq -r .archive_sha256 <<<"$source_json")"
+            if [[ ! -d "$destination/.git" ]]; then
+                mkdir -p "$destination"
+                git -C "$destination" init --quiet
+                git -C "$destination" remote add origin "$url"
+            fi
+            log "Fetching $id at $ref"
+            git -C "$destination" fetch --quiet --depth=1 origin "$ref"
+            git -C "$destination" checkout --quiet --force -B source-lock FETCH_HEAD
+            [[ "$(git -C "$destination" rev-parse HEAD)" == "$ref" ]] || die "unexpected commit for $id"
+            actual="$(git -C "$destination" archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+            [[ "$actual" == "$expected" ]] || die "archive hash mismatch for $id"
+            ;;
+        http)
+            url="$(jq -r .url <<<"$source_json")"
+            filename="$(jq -r .filename <<<"$source_json")"
+            expected="$(jq -r .sha256 <<<"$source_json")"
+            destination="$BUILD_ROOT/downloads/$filename"
+            if [[ ! -f "$destination" ]]; then
+                log "Downloading $id"
+                curl --fail --location --retry 3 --output "$destination.partial" "$url"
+                mv "$destination.partial" "$destination"
+            fi
+            verify_sha256 "$destination" "$expected"
+            ;;
+        oci)
+            log "OCI source $id is pinned in build/Containerfile"
+            ;;
+        *) die "unsupported source kind '$kind' for $id" ;;
+    esac
+done < <(jq -c '.sources[]' "$SOURCE_LOCK")
+
+log 'All selected sources match the source lock'
