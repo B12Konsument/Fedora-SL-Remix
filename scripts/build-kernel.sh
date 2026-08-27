@@ -75,8 +75,29 @@ git -C "$source_tree" add --intent-to-add -A
 git -C "$source_tree" diff --binary HEAD -- > "$distgit/linux-kernel-test.patch"
 [[ -s "$distgit/linux-kernel-test.patch" ]] || die 'the generated SL7 kernel patch is empty'
 
-for config in "$distgit"/kernel-aarch64*-fedora.config; do
-    grep -q '^CONFIG_SPI_HID=' "$config" || printf '\nCONFIG_SPI_HID=m\n' >> "$config"
+grep -Fqx 'source "drivers/hid/spi-hid/Kconfig"' "$source_tree/drivers/hid/Kconfig" || \
+    die 'SPI-HID is not connected to the parent Kconfig'
+# The dollar sign is a literal Kbuild variable, not shell interpolation.
+# shellcheck disable=SC2016
+grep -Fqx 'obj-$(CONFIG_SPI_HID)		+= spi-hid/' "$source_tree/drivers/hid/Makefile" || \
+    die 'SPI-HID is not connected to the parent Makefile'
+
+spi_hid_config=(
+    CONFIG_SPI_HID=m
+    CONFIG_SPI_HID_ACPI=m
+    CONFIG_SPI_HID_CORE=m
+    CONFIG_SPI_HID_OF=m
+)
+for config in "$distgit"/kernel-*-fedora.config; do
+    if [[ $(basename "$config") == kernel-aarch64*-fedora.config ]]; then
+        for option in "${spi_hid_config[@]}"; do
+            key=${option%%=*}
+            grep -q "^$key=" "$config" || printf '%s\n' "$option" >> "$config"
+        done
+    else
+        grep -q '^\(# \)\?CONFIG_SPI_HID' "$config" || \
+            printf '%s\n' '# CONFIG_SPI_HID is not set' >> "$config"
+    fi
 done
 
 sed -i 's/^# define buildid \.local$/%define buildid .sl7.1/' "$distgit/kernel.spec"
@@ -88,9 +109,18 @@ if ((prepare_only)); then
 fi
 
 log 'Installing Fedora kernel build dependencies'
-dnf -y builddep "$distgit/kernel.spec"
+dnf -y builddep \
+    --with=baseonly \
+    --without=debug \
+    --without=debuginfo \
+    --without=doc \
+    --without=tools \
+    --without=selftests \
+    "$distgit/kernel.spec"
 
 topdir="$BUILD_ROOT/rpmbuild-kernel"
+mkdir -p "$topdir"
+find "$topdir" -depth -mindepth 1 -delete
 mkdir -p "$topdir"/{BUILD,BUILDROOT,RPMS,SOURCES,SPECS,SRPMS}
 log 'Building Fedora SL7 kernel RPMs; this is the longest build step'
 rpmbuild -ba "$distgit/kernel.spec" \
@@ -107,3 +137,20 @@ rpmbuild -ba "$distgit/kernel.spec" \
 
 mkdir -p "$BUILD_ROOT/rpms"
 find "$topdir/RPMS" -type f -name '*.rpm' -exec cp -f -- {} "$BUILD_ROOT/rpms/" \;
+
+for module in spi-hid.ko spi-hid-acpi.ko spi-hid-of.ko; do
+    found=0
+    while IFS= read -r rpm_file; do
+        if rpm -qlp "$rpm_file" | grep -Eq "/$module([.](xz|zst|gz))?$"; then
+            found=1
+            break
+        fi
+    done < <(find "$topdir/RPMS" -type f -name '*.rpm' -print | sort)
+    ((found)) || die "built kernel RPMs do not contain $module"
+done
+
+while IFS= read -r filename; do
+    stock_rpm="$BUILD_ROOT/downloads/$filename"
+    [[ -f "$stock_rpm" ]] || die "stock Fedora fallback RPM is missing: $filename"
+    cp -f -- "$stock_rpm" "$BUILD_ROOT/rpms/"
+done < <(jq -r '.sources[] | select(.role? == "stock-kernel-fallback") | .filename' "$SOURCE_LOCK")

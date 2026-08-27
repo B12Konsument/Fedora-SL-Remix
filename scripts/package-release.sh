@@ -18,7 +18,5 @@ cp "$iso" "$output/"
 
 (
     cd "$output"
-    sha256sum "$(basename "$iso")"
-    find . -maxdepth 1 -type f \( -name '*.tar.zst' -o -name '*.json' \) -printf '%f\n' | sort | xargs -r sha256sum
+    find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort | xargs -r sha256sum
 ) > "$output/SHA256SUMS"
-

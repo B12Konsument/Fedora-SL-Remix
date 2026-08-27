@@ -65,6 +65,7 @@ case "$firmware_mode" in auto|skip|download|msi|windows) ;; *) die "invalid firm
 temp="$(mktemp -d /var/tmp/fedora-sl7-install.XXXXXX)"
 cleanup() {
     mountpoint -q "$temp/windows" 2>/dev/null && umount "$temp/windows"
+    mountpoint -q "$temp/dislocker" 2>/dev/null && umount "$temp/dislocker"
     find "$temp" -depth -delete
 }
 trap cleanup EXIT
@@ -100,19 +101,32 @@ find_windows_root() {
 }
 
 extract_from_unmounted_windows() {
-    local device fstype mount_dir="$temp/windows"
-    mkdir -p "$mount_dir"
+    local device fstype mounted=0
+    local mount_dir="$temp/windows" dislocker_dir="$temp/dislocker"
+    mkdir -p "$mount_dir" "$dislocker_dir"
     while read -r device fstype; do
-        case "$fstype" in ntfs|ntfs3) ;; *) continue ;; esac
-        if mount -o ro "$device" "$mount_dir" 2>/dev/null; then
-            if [[ -d "$mount_dir/Windows/System32/DriverStore" ]]; then
-                log "Extracting firmware from $device mounted read-only"
-                sl7-firmware install --windows-root "$mount_dir"
-                umount "$mount_dir"
-                return 0
-            fi
+        mounted=0
+        case "$fstype" in
+            ntfs|ntfs3)
+                mount -o ro "$device" "$mount_dir" 2>/dev/null && mounted=1
+                ;;
+            BitLocker)
+                log "Unlocking $device read-only with dislocker; authentication may be requested"
+                if dislocker --readonly "$device" -- "$dislocker_dir"; then
+                    mount -o loop,ro "$dislocker_dir/dislocker-file" "$mount_dir" 2>/dev/null && mounted=1
+                fi
+                ;;
+            *) continue ;;
+        esac
+        if ((mounted)) && [[ -d "$mount_dir/Windows/System32/DriverStore" ]]; then
+            log "Extracting firmware from $device mounted read-only"
+            sl7-firmware install --windows-root "$mount_dir"
             umount "$mount_dir"
+            mountpoint -q "$dislocker_dir" 2>/dev/null && umount "$dislocker_dir"
+            return 0
         fi
+        ((mounted)) && umount "$mount_dir"
+        mountpoint -q "$dislocker_dir" 2>/dev/null && umount "$dislocker_dir"
     done < <(lsblk -nrpo NAME,FSTYPE)
     return 1
 }

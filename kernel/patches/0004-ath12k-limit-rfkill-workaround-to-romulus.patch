@@ -1,0 +1,32 @@
+From 0000000000000000000000000000000000000004 Mon Sep 17 00:00:00 2001
+From: Fedora SL7 Remix contributors <noreply@example.invalid>
+Date: Thu, 27 Aug 2026 00:00:00 +0000
+Subject: [PATCH] wifi: ath12k: limit rfkill workaround to Romulus
+
+The Romulus firmware advertises RFKill support, but configuring it prevents
+ath12k enumeration on Surface Laptop 7. The original downstream workaround
+returned early for every ath12k device. Preserve the required behavior only
+when the root device tree identifies one of the two supported Romulus models.
+
+Based-on: https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2e8c2d99262435510fb9b1f48f4637a4b9149099
+Signed-off-by: Fedora SL7 Remix contributors <noreply@example.invalid>
+---
+ drivers/net/wireless/ath/ath12k/core.c | 4 ++++
+ 1 file changed, 4 insertions(+)
+
+diff --git a/drivers/net/wireless/ath/ath12k/core.c b/drivers/net/wireless/ath/ath12k/core.c
+--- a/drivers/net/wireless/ath/ath12k/core.c
++++ b/drivers/net/wireless/ath/ath12k/core.c
+@@ -76,6 +76,10 @@ static int ath12k_core_rfkill_config(struct ath12k_base *ab)
+ 	if (!(ab->target_caps.sys_cap_info & WMI_SYS_CAP_INFO_RFKILL))
+ 		return 0;
+ 
++	if (of_machine_is_compatible("microsoft,romulus13") ||
++	    of_machine_is_compatible("microsoft,romulus15"))
++		return 0;
++
+ 	if (ath12k_acpi_get_disable_rfkill(ab))
+ 		return 0;
+ 
+-- 
+2.51.0

@@ -6,6 +6,7 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$PROJECT_ROOT/scripts/lib.sh"
 
 require_command dtc
+require_command jq
 require_command rpm
 
 iso=${1:?ISO path required}
@@ -45,16 +46,18 @@ dtc -q -I dtb -O dts "$romulus15" | grep -q 'microsoft,romulus15' || die 'Romulu
 rpm --root "$root" -q anaconda fedora-sl7-remix-support iptsd-sl7 sl7-mac \
     qcom-firmware-extract kernel-uki-dtbloader >/dev/null || die 'live root is missing a required RPM'
 rpm --root "$root" -qa 'kernel*' | grep -q '[.]sl7[.]' || die 'live root is missing the Fedora SL7 kernel packages'
+stock_kernel_evr="$(jq -er '.sources[] | select(.id == "fedora-kernel-distgit") | .version + "-" + .release' "$SOURCE_LOCK")"
+rpm --root "$root" -q "kernel-uki-dtbloader-$stock_kernel_evr.aarch64" >/dev/null || \
+    die 'live root is missing the unmodified Fedora fallback kernel'
 
 if [[ "$mode" == --public ]]; then
     if find "$work/iso" -type f -iname '*.msi' -print -quit | grep -q .; then
         die 'public ISO contains a Microsoft MSI'
     fi
-    for forbidden in qcdxkmsuc8380.mbn qcadsp8380.mbn qccdsp8380.mbn adsp_dtbs.elf cdsp_dtbs.elf; do
-        if find "$root/usr/lib/firmware" -type f -iname "$forbidden" -print -quit | grep -q .; then
-            die "public ISO contains prohibited Microsoft firmware: $forbidden"
-        fi
-    done
+    prohibited_firmware="$(find "$root/usr/lib/firmware" -type f \
+        -ipath '*/qcom/x1e80100/microsoft/*' -print -quit)"
+    [[ -z "$prohibited_firmware" ]] || \
+        die "public ISO contains prohibited Microsoft firmware: $prohibited_firmware"
 fi
 
 log "ISO inspection passed in ${mode#--} mode"

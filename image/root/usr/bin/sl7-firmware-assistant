@@ -9,11 +9,17 @@ fi
 
 choice="$(kdialog --title 'Surface Laptop 7 firmware' --menu \
     'Choose a firmware source. Extracted files are proprietary and must not be redistributed.' \
+    windows 'Select a mounted Windows system volume' \
     msi 'Select an official Surface Laptop 7 MSI file' \
     download 'Download the pinned official Microsoft MSI' \
     status 'Check installed firmware' 2>/dev/null || true)"
 
 case "$choice" in
+    windows)
+        directory="$(kdialog --getexistingdirectory /run/media 2>/dev/null || true)"
+        [[ -n "$directory" ]] || exit 0
+        konsole -e bash -lc "sudo sl7-firmware install --windows-root \"\$1\"; read -rp 'Press Enter to close...'" _ "$directory"
+        ;;
     msi)
         file="$(kdialog --getopenfilename "$HOME" '*.msi|Microsoft installer (*.msi)' 2>/dev/null || true)"
         [[ -n "$file" ]] || exit 0
@@ -26,4 +32,3 @@ case "$choice" in
         konsole -e bash -lc "sudo sl7-firmware status; read -rp 'Press Enter to close...'"
         ;;
 esac
-

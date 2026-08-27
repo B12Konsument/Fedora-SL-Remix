@@ -15,6 +15,11 @@ The repository contains the complete build automation, package recipes, image
 overlay, source lock, tests, and release workflow. Redistributable releases do
 not contain Microsoft's proprietary firmware.
 
+Linux does not need Windows for its normal driver stack after the required
+device firmware has been extracted. Keeping Windows is still recommended for
+Surface UEFI/embedded-controller updates, recovery, and the currently most
+reliable reset of a touchpad that occasionally remains broken after suspend.
+
 ## Quick start
 
 The primary installation path is deliberately similar to the Asahi Linux
@@ -77,7 +82,9 @@ proof of physical hardware support.
 Automatic DTB selection uses Fedora's `kernel-uki-dtbloader` and contains both
 `x1e80100-microsoft-romulus13.dtb` and
 `x1e80100-microsoft-romulus15.dtb`. Troubleshooting entries in GRUB can force
-either DTB when firmware identification is incorrect.
+either DTB when firmware identification is incorrect. The patched `.sl7`
+kernel remains the default, while an exactly pinned, unmodified Fedora UKI is
+installed alongside it as a recovery boot target.
 
 ## Firmware policy
 

@@ -16,6 +16,10 @@ Requires:       jq
 Requires:       msitools
 Requires:       qcom-firmware-extract
 Requires:       systemd
+# Keep an unmodified, bootable Fedora UKI beside the patched installonly kernel.
+Requires:       kernel-modules = 7.1.10-200.fc44
+Requires:       kernel-modules-core = 7.1.10-200.fc44
+Requires:       kernel-uki-dtbloader = 7.1.10-200.fc44
 BuildRequires:  systemd-rpm-macros
 %{?systemd_requires}
 
@@ -41,6 +45,12 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 
 %postun
 %systemd_postun_with_restart sl7-kernel-default.service sl7-qemu-smoke-marker.service
+
+%transfiletriggerin -- /boot
+%{_libexecdir}/sl7-set-default-kernel || :
+
+%transfiletriggerpostun -- /boot
+%{_libexecdir}/sl7-set-default-kernel || :
 
 %files
 %license LICENSE LICENSES.md

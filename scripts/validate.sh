@@ -23,13 +23,25 @@ jq -e '
     (.purpose | type == "string" and length > 0) and
     (.redistributable | type == "boolean") and
     (if .kind == "git" then
-       (.ref | test("^[0-9a-f]{40}$")) and (.archive_sha256 | test("^[0-9a-f]{64}$"))
+       (.ref | test("^[0-9a-f]{40}$")) and (.archive_sha256 | test("^[0-9a-f]{64}$")) and
+       (if has("branch") then (.branch | length > 0) and (.fetch_depth | type == "number" and . >= 1) else true end)
      elif .kind == "http" then
        (.filename | length > 0) and (.sha256 | test("^[0-9a-f]{64}$"))
      else
        (.ref | test("^sha256:[0-9a-f]{64}$")) and (.sha256 | test("^[0-9a-f]{64}$"))
      end))
 ' "$SOURCE_LOCK" >/dev/null
+
+stock_kernel_evr="$(jq -er '.sources[] | select(.id == "fedora-kernel-distgit") | .version + "-" + .release' "$SOURCE_LOCK")"
+mapfile -t stock_kernel_rpms < <(jq -r '.sources[] | select(.role? == "stock-kernel-fallback") | .filename' "$SOURCE_LOCK" | sort)
+[[ ${#stock_kernel_rpms[@]} -eq 3 ]] || die 'the source lock must contain the three stock Fedora fallback-kernel RPMs'
+jq -e 'all(.sources[] | select(.role? == "stock-kernel-fallback");
+    .signature_fingerprint | test("^[0-9a-f]{40}$"))' "$SOURCE_LOCK" >/dev/null
+for package in kernel-modules kernel-modules-core kernel-uki-dtbloader; do
+    grep -Fqx "Requires:       $package = $stock_kernel_evr" \
+        "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec" || \
+        die "$package fallback requirement does not match the source lock"
+done
 
 jq -e '
   .schema == 1 and

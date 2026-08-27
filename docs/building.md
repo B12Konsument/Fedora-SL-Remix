@@ -19,6 +19,10 @@
 7. Run `sudo sl7-firmware status` and complete any missing firmware with the
    desktop assistant.
 
+The Fedora boot menu retains an unmodified Fedora UKI as a recovery choice.
+Routine Fedora updates do not replace the `.sl7` default selected by the
+project's systemd service.
+
 For an offline installation, download a release package bundle on another
 machine and use `sudo ./install.sh --bundle /path/to/bundle.tar.zst`.
 
@@ -84,4 +88,3 @@ Source updates are intentional maintenance work. Update the URL/ref and hash,
 run `scripts/fetch-sources.sh`, rebase the minimal patch queue, build the RPMs,
 run the automated tests, and attach real-device evidence. Never change a hash
 merely to make an unexpected download pass.
-

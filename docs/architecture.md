@@ -14,7 +14,7 @@ pinned Fedora/kernel/community sources
                   v
    kernel + IPTSD + MAC + support RPMs
                   |
-          local signed-metadata repo
+            local RPM metadata repo
              /                \
             v                  v
      install.sh bundle     optional KIWI ISO
@@ -56,6 +56,15 @@ Both Romulus device trees are built into `kernel-uki-dtbloader`. Normal boots
 use the UKI hardware-ID selector. The optional ISO additionally carries the two
 DTBs as regular files for explicit GRUB troubleshooting entries.
 
+The package repository also contains the exact unmodified Fedora UKI, core
+modules, and modules RPMs recorded in the source lock. Exact dependencies in
+the support package force that installonly kernel to coexist with the patched
+`.sl7` kernel, so both installer-first and ISO installations retain a Fedora
+recovery boot target. The default-selection service only selects kernels whose
+release contains `.sl7.`. RPM transaction file triggers reapply that choice at
+the end of kernel installation or removal transactions, and the boot-time
+service provides a second consistency check.
+
 ## Firmware boundary
 
 Public artifacts contain the extractor, source metadata, and user interface,
@@ -71,6 +80,6 @@ contain any denylisted Microsoft filename.
 Git commits, generated Git archive hashes, HTTP downloads, individual kernel
 patches, the AArch64 Fedora container image, and GitHub Actions are pinned.
 Fedora RPM dependencies remain verified by Fedora repository signatures; the
-complete resolved NEVRA list is emitted beside every image. Outputs also contain
-the source lock, license report, checksums, and an SPDX 2.3 SBOM.
-
+complete project-RPM NEVRA list is emitted beside every image. Outputs also
+contain the source lock, license report, checksums, and an SPDX 2.3 SBOM for the
+project RPM repository.

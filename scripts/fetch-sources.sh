@@ -36,8 +36,18 @@ while IFS= read -r source_json; do
                 git -C "$destination" remote add origin "$url"
             fi
             log "Fetching $id at $ref"
-            git -C "$destination" fetch --quiet --depth=1 origin "$ref"
-            git -C "$destination" checkout --quiet --force -B source-lock FETCH_HEAD
+            if ! git -C "$destination" cat-file -e "$ref^{commit}" 2>/dev/null; then
+                branch="$(jq -r '.branch // empty' <<<"$source_json")"
+                if [[ -n "$branch" ]]; then
+                    fetch_depth="$(jq -r '.fetch_depth // 64' <<<"$source_json")"
+                    git -C "$destination" fetch --quiet --depth="$fetch_depth" origin "$branch"
+                    git -C "$destination" cat-file -e "$ref^{commit}" 2>/dev/null || \
+                        die "pinned commit for $id is outside the locked branch history window"
+                else
+                    git -C "$destination" fetch --quiet --depth=1 origin "$ref"
+                fi
+            fi
+            git -C "$destination" checkout --quiet --force -B source-lock "$ref"
             [[ "$(git -C "$destination" rev-parse HEAD)" == "$ref" ]] || die "unexpected commit for $id"
             actual="$(git -C "$destination" archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
             [[ "$actual" == "$expected" ]] || die "archive hash mismatch for $id"
@@ -53,6 +63,13 @@ while IFS= read -r source_json; do
                 mv "$destination.partial" "$destination"
             fi
             verify_sha256 "$destination" "$expected"
+            signature_fingerprint="$(jq -r '.signature_fingerprint // empty' <<<"$source_json")"
+            if [[ -n "$signature_fingerprint" ]]; then
+                require_command rpmkeys
+                signature_report="$(rpmkeys --checksig --verbose "$destination")"
+                grep -Fq "key fingerprint: $signature_fingerprint: OK" <<<"$signature_report" || \
+                    die "RPM signature mismatch for $id"
+            fi
             ;;
         oci)
             log "OCI source $id is pinned in build/Containerfile"

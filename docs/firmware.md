@@ -16,6 +16,10 @@ Keeping Windows is nevertheless strongly recommended because:
 - Surface UEFI, embedded-controller, and other platform firmware updates are
   distributed through Microsoft's Windows update mechanisms. Linux update
   coverage must not be assumed to be equivalent.
+- Current community testing reports that a touchpad left in a bad state after
+  suspend can sometimes be recovered most reliably by booting Windows once.
+  This is a temporary practical dependency, not part of the normal Linux
+  driver or firmware-loading path.
 - Windows and its recovery environment remain useful while Linux support is
   experimental.
 
@@ -40,8 +44,10 @@ sudo sl7-firmware install --download
 sudo sl7-firmware status
 ```
 
-BitLocker volumes must be unlocked by the owner before they can be used. The
-automatic installer skips volumes it cannot mount read-only.
+The installer mounts plain NTFS volumes read-only. For a BitLocker volume it
+uses `dislocker` in read-only mode and may interactively request the owner's
+password or recovery material. If automatic unlocking is not possible, unlock
+and mount Windows yourself and pass its mount point with `--windows-root`.
 
 ## Installed files
 
@@ -66,4 +72,3 @@ Microsoft firmware and driver packages remain subject to Microsoft's terms.
 The private extraction mode exists for the device owner's personal installation;
 it does not provide a redistribution license. Do not upload extracted files,
 private ISOs, or private package bundles to GitHub releases or mirrors.
-
