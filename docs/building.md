@@ -32,6 +32,14 @@ The build host must be Linux with Podman, at least 80 GiB free space, and an
 internet connection. Native AArch64 is supported. An x86_64 host needs working
 AArch64 binfmt/QEMU registration and will be substantially slower.
 
+Native Windows is not a supported build environment. The KIWI image build
+needs privileged Linux mounts, loop devices, and container operations that are
+not provided reliably by WSL or Podman Desktop. On a Windows-on-Arm Surface, a
+Fedora AArch64 VM may be used only if it exposes privileged loop devices. This
+path is currently experimental and is not covered by CI. Use a
+native Fedora AArch64 machine, a suitable Fedora AArch64 build VM/cloud host,
+or the published release image for predictable results.
+
 ```bash
 sudo ./build.sh
 ```

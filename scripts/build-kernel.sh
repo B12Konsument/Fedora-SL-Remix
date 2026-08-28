@@ -141,7 +141,10 @@ find "$topdir/RPMS" -type f -name '*.rpm' -exec cp -f -- {} "$BUILD_ROOT/rpms/" 
 for module in spi-hid.ko spi-hid-acpi.ko spi-hid-of.ko; do
     found=0
     while IFS= read -r rpm_file; do
-        if rpm -qlp "$rpm_file" | grep -Eq "/$module([.](xz|zst|gz))?$"; then
+        # Do not use grep -q here: with pipefail, its early exit makes rpm(8)
+        # receive SIGPIPE on large module packages and turns a match into a
+        # false failure.
+        if rpm -qlp "$rpm_file" | grep -E "/$module([.](xz|zst|gz))?$" >/dev/null; then
             found=1
             break
         fi

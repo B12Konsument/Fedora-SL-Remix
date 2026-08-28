@@ -29,8 +29,9 @@ hardware-support project while retaining the useful Asahi-style property: one
 command detects the exact machine and installs a coherent, verified platform
 stack.
 
-The installer accepts only Fedora 44 on AArch64 and the four consumer/business
-SKU strings for Microsoft models 2036/2037. Device-tree compatibility strings
+The installer accepts only Fedora 44 on AArch64 and the two consumer Snapdragon
+SKU strings for Microsoft models 2036/2037. Intel/x86_64 Surface Laptop 7 for
+Business variants are outside the supported hardware scope. Device-tree compatibility strings
 provide a fallback when SMBIOS is unavailable. It installs the release RPM
 bundle, preserves the Fedora kernel as a fallback, makes the `.sl7` kernel the
 default, extracts firmware when an accessible Windows volume is found, rebuilds

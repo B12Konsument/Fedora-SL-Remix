@@ -14,7 +14,9 @@ Requires:       findutils
 Requires:       grubby
 Requires:       jq
 Requires:       msitools
-Requires:       qcom-firmware-extract
+# Require the audited Remix build, not Fedora's package with another version
+# sequence under the same name.
+Requires:       qcom-firmware-extract = 1:2-2.fc44
 Requires:       systemd
 # Keep an unmodified, bootable Fedora UKI beside the patched installonly kernel.
 Requires:       kernel-modules = 7.1.10-200.fc44

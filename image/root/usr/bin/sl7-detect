@@ -20,12 +20,12 @@ size=unknown
 supported=false
 
 case "$sku" in
-    Surface_Laptop_7th_Edition_2036|Surface_Laptop_7th_Edition_For_Business_2036)
+    Surface_Laptop_7th_Edition_2036)
         model=romulus13
         size=13.8
         supported=true
         ;;
-    Surface_Laptop_7th_Edition_2037|Surface_Laptop_7th_Edition_For_Business_2037)
+    Surface_Laptop_7th_Edition_2037)
         model=romulus15
         size=15
         supported=true

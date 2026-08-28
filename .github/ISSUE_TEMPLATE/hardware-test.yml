@@ -13,9 +13,7 @@ body:
       label: Model
       options:
         - 13.8-inch consumer (SKU 2036)
-        - 13.8-inch business (SKU 2036)
         - 15-inch consumer (SKU 2037)
-        - 15-inch business (SKU 2037)
     validations:
       required: true
   - type: input

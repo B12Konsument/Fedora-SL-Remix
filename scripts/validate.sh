@@ -43,6 +43,13 @@ for package in kernel-modules kernel-modules-core kernel-uki-dtbloader; do
         die "$package fallback requirement does not match the source lock"
 done
 
+grep -Fqx 'Epoch:          1' \
+    "$PROJECT_ROOT/packages/qcom-firmware-extract/qcom-firmware-extract.spec" || \
+    die 'the pinned qcom-firmware-extract build must supersede the Fedora version sequence'
+grep -Fqx 'Requires:       qcom-firmware-extract = 1:2-2.fc44' \
+    "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec" || \
+    die 'the support package must require the audited qcom-firmware-extract build'
+
 jq -e '
   .schema == 1 and
   (.patches | length > 0) and
@@ -64,6 +71,11 @@ jq -e '
 
 grep -q '^set default="0"$' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || die 'automatic hardware detection must be the default GRUB entry'
 grep -q 'name="kernel-uki-dtbloader"' "$PROJECT_ROOT/image/sl7.xml" || die 'the image must explicitly install kernel-uki-dtbloader'
+grep -Fq "[[ \${#install_rpms[@]} -eq 10 ]]" "$PROJECT_ROOT/install.sh" || \
+    die 'the existing-system installer must use the audited ten-RPM install set'
+if grep -Fq "dnf install -y \"\${rpms[@]}\"" "$PROJECT_ROOT/install.sh"; then
+    die 'the installer must not install every kernel build artifact from the bundle'
+fi
 
 mapfile -t shell_files < <(
     find "$PROJECT_ROOT" \

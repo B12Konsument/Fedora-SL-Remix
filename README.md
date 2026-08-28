@@ -7,9 +7,9 @@
 > must be disabled for the first release.
 
 Fedora SL7 Remix builds a Fedora 44 KDE Live ISO for the Snapdragon-based
-Microsoft Surface Laptop 7. One image covers the 13.8-inch and 15-inch consumer
-and business models (Microsoft system SKUs 2036 and 2037) by using Fedora's
-automatic AArch64 UKI/DTB selection.
+Microsoft Surface Laptop 7. One image covers the 13.8-inch and 15-inch
+consumer Snapdragon models (Microsoft system SKUs 2036 and 2037) by using
+Fedora's automatic AArch64 UKI/DTB selection.
 
 The repository contains the complete build automation, package recipes, image
 overlay, source lock, tests, and release workflow. Redistributable releases do
@@ -57,10 +57,13 @@ cd Fedora-SL-Remix &&
 ./scripts/download-release.sh latest
 ```
 
-The build needs Linux, Podman, an internet connection, and at least 80 GiB of
-free space. Native AArch64 is the supported and CI-tested build architecture.
-x86_64 uses AArch64 emulation and is much slower. Windows and macOS users should
-run the build in a Fedora AArch64 VM.
+The build needs Linux, Podman, privileged loop/mount support, an internet
+connection, and at least 80 GiB of free space. Native AArch64 is the supported
+and CI-tested build architecture. x86_64 uses AArch64 emulation and is much
+slower. Native Windows, WSL, and Podman Desktop are not supported build hosts.
+Windows and macOS users need a Fedora AArch64 VM with privileged loop-device
+support; that VM route is not CI-tested yet. Most users should download and
+verify the published release artifacts instead of building an ISO locally.
 
 ## Supported devices
 
@@ -68,10 +71,10 @@ run the build in a Fedora AArch64 VM.
 | --- | --- | --- | --- |
 | Surface Laptop 7 13.8-inch | 2036 | Snapdragon X Plus / X Elite | Supported, community verification needed |
 | Surface Laptop 7 15-inch | 2037 | Snapdragon X Elite | Reference device, verification in progress |
-| Business variants | 2036 / 2037 | Snapdragon X Plus / X Elite | Supported, community verification needed |
 
-Intel Surface Laptop models, Surface Pro 11, the 13-inch first edition, and
-later Surface Laptop generations are outside this project's scope.
+Intel Surface Laptop models, including the x86_64 Surface Laptop 7 for
+Business variants, Surface Pro 11, the 13-inch first edition, and later Surface
+Laptop generations are outside this project's scope.
 
 ## Hardware status
 
@@ -140,5 +143,5 @@ Fetched upstream code retains its own license. See [LICENSES.md](LICENSES.md).
 ## Contributing
 
 Read [CONTRIBUTING.md](CONTRIBUTING.md) before updating source locks or kernel
-patches. Hardware results are especially useful for 13.8-inch and business
-models. Security issues should follow [SECURITY.md](SECURITY.md).
+patches. Hardware results are especially useful for the 13.8-inch and
+Snapdragon X Plus models. Security issues should follow [SECURITY.md](SECURITY.md).

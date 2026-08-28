@@ -38,6 +38,9 @@
     },
     {"id":"spi-geni-fragmentation-fedora-restore","path":"kernel/patches/0003-spi-geni-fragmentation-fedora-restore.patch","license":"GPL-2.0-only","upstream_status":"project-context-adapter-for-linux-7.1.10"},
     {"id":"romulus-ath12k-enumeration","path":"kernel/patches/0004-ath12k-limit-rfkill-workaround-to-romulus.patch","license":"BSD-3-Clause-Clear","upstream_status":"project-scoped-rebase-for-linux-7.1.10","based_on":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2e8c2d99262435510fb9b1f48f4637a4b9149099"},
+    {"id":"hamoa-camera-clock-controller-dt","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2467bd57674e.patch","sha256":"054b57d514d25bbaf1e7ec7398d14cad0a0ee05a214ccd50c1939503a730a019","license":"BSD-3-Clause","upstream_status":"ubuntu-sauce-prerequisite-for-romulus-camera"},
+    {"id":"hamoa-camera-cci-dt","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/f28243b81a38.patch","sha256":"d4a1c7c34ad684f213aabd30f042b10295d86c50dede8139a82eceb6ed656108","license":"BSD-3-Clause","upstream_status":"ubuntu-sauce-prerequisite-for-romulus-camera"},
+    {"id":"hamoa-camera-camss-dt","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/bda08a444236.patch","sha256":"4f70d9b7b7e53ed9e9b7bd88decf9e912307cfb5161c189bfc39ba689cef1a31","license":"BSD-3-Clause","upstream_status":"ubuntu-sauce-prerequisite-for-romulus-camera"},
     {"id":"romulus-camera","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/0e9944fa4cf2.patch","sha256":"a4d8b0b6152ee73ae00ffd3efda4d8fe819f7e7a858c86f839f061491d94f755","license":"GPL-2.0-only","upstream_status":"downstream-required-for-linux-7.1.10"},
     {"id":"dwc3-resume-rebase","path":"kernel/patches/0001-dwc3-romulus-full-reinit.patch","license":"GPL-2.0-only","upstream_status":"project-rebase-for-linux-7.1.10"}
   ],

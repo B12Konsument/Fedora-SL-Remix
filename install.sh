@@ -51,6 +51,7 @@ done
 
 ((EUID == 0)) || die 'run the installer with sudo'
 [[ "$(uname -m)" == aarch64 ]] || die 'the installer requires an AArch64 Fedora system'
+require_command rpm
 [[ -r /etc/os-release ]] || die 'cannot identify the operating system'
 source /etc/os-release
 [[ ${ID:-} == fedora && ${VERSION_ID:-} == 44 ]] || die 'Fedora 44 is required by this release'
@@ -88,8 +89,43 @@ fi
 mapfile -t rpms < <(find "$repo_dir" -type f -name '*.rpm' -print | sort)
 ((${#rpms[@]})) || die 'the package bundle contains no RPMs'
 
-log 'Installing the SL7 kernel and hardware integration packages'
-dnf install -y "${rpms[@]}"
+declare -a install_rpms=()
+declare -A package_counts=()
+declare -A sl7_kernel_counts=()
+declare -A fallback_kernel_counts=()
+for rpm_file in "${rpms[@]}"; do
+    rpm_name="$(rpm -qp --queryformat '%{NAME}' "$rpm_file")"
+    rpm_evr="$(rpm -qp --queryformat '%{EPOCHNUM}:%{VERSION}-%{RELEASE}' "$rpm_file")"
+    case "$rpm_name" in
+        fedora-sl7-remix-support|iptsd-sl7|qcom-firmware-extract|sl7-mac)
+            install_rpms+=("$rpm_file")
+            ((package_counts[$rpm_name] = ${package_counts[$rpm_name]:-0} + 1))
+            ;;
+        kernel-modules|kernel-modules-core|kernel-uki-dtbloader)
+            install_rpms+=("$rpm_file")
+            if [[ "$rpm_evr" == *'.sl7.'* ]]; then
+                ((sl7_kernel_counts[$rpm_name] = ${sl7_kernel_counts[$rpm_name]:-0} + 1))
+            else
+                ((fallback_kernel_counts[$rpm_name] = ${fallback_kernel_counts[$rpm_name]:-0} + 1))
+            fi
+            ;;
+    esac
+done
+
+for package in fedora-sl7-remix-support iptsd-sl7 qcom-firmware-extract sl7-mac; do
+    [[ ${package_counts[$package]:-0} -eq 1 ]] || \
+        die "the package bundle must contain exactly one $package RPM"
+done
+for package in kernel-modules kernel-modules-core kernel-uki-dtbloader; do
+    [[ ${sl7_kernel_counts[$package]:-0} -eq 1 ]] || \
+        die "the package bundle must contain exactly one SL7 $package RPM"
+    [[ ${fallback_kernel_counts[$package]:-0} -eq 1 ]] || \
+        die "the package bundle must contain exactly one Fedora fallback $package RPM"
+done
+[[ ${#install_rpms[@]} -eq 10 ]] || die 'the package bundle resolved to an unexpected install set'
+
+log 'Installing the SL7 UKI, Fedora fallback UKI, and hardware integration packages'
+dnf install -y "${install_rpms[@]}"
 systemctl enable sl7-kernel-default.service sl7-wifi-mac.service
 
 find_windows_root() {

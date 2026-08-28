@@ -13,9 +13,11 @@ Status terms are deliberately strict:
 | Model | Selector | Status |
 | --- | --- | --- |
 | 13.8-inch consumer, SKU 2036 | Romulus 13 DTB | untested |
-| 13.8-inch business, SKU 2036 | Romulus 13 DTB | untested |
 | 15-inch consumer, SKU 2037 | Romulus 15 DTB | hardware verification pending |
-| 15-inch business, SKU 2037 | Romulus 15 DTB | untested |
+
+Surface Laptop 7 for Business systems with Intel/x86_64 processors are not
+covered by this AArch64 project, even where their product naming or chassis is
+similar.
 
 Snapdragon X Plus/X Elite, RAM size, and SSD capacity do not select a different
 DTB. Form factor and SKU do.
@@ -24,7 +26,7 @@ DTB. Form factor and SKU do.
 
 | Function | Expected status | Notes |
 | --- | --- | --- |
-| AArch64 UEFI boot and automatic DTB | CI-tested | Both DTBs are inspected in the UKI/package payload |
+| AArch64 UEFI boot and automatic DTB | untested | CI inspection exists; the first complete release build is pending |
 | NVMe and installation | untested | Must pass destructive-install checklist on real hardware |
 | Keyboard | untested | SPI-HID kernel support is included |
 | Touchpad and haptic click | untested | SPI-HID kernel queue, IPTSD fork, and calibration included |
