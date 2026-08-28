@@ -20,11 +20,48 @@ device firmware has been extracted. Keeping Windows is still recommended for
 Surface UEFI/embedded-controller updates, recovery, and the currently most
 reliable reset of a touchpad that occasionally remains broken after suspend.
 
-## Quick start
+## Get an ISO
 
-The primary installation path is deliberately similar to the Asahi Linux
-bootstrap model: install the official Fedora 44 KDE AArch64 image while keeping
-Windows, boot the new Fedora system, and run one hardware-enablement command:
+### Build an ISO yourself
+
+To build a redistribution-safe ISO from this repository, run exactly:
+
+```bash
+git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
+cd Fedora-SL-Remix &&
+sudo ./build.sh
+```
+
+The finished file is written to `out/` and is named
+`Fedora-SL7-Remix-44-<version>.aarch64.iso`.
+
+The build needs Linux, Podman, privileged loop/mount support, an internet
+connection, and at least 80 GiB of free space. Native AArch64 is the supported
+and CI-tested build architecture. x86_64 uses AArch64 emulation and is much
+slower. Native Windows, WSL, and Podman Desktop are not supported build hosts.
+Windows and macOS users need a Fedora AArch64 VM with privileged loop-device
+support; that VM route is not CI-tested yet.
+
+Pass `--with-microsoft-firmware` only for a private ISO that will not be
+redistributed.
+
+### Download a published ISO
+
+Download, verify, and join the latest public release:
+
+```bash
+git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
+cd Fedora-SL-Remix &&
+./scripts/download-release.sh latest
+```
+
+No release ISO has been published yet. Once the first prerelease exists, this
+command is the preferred path for most users.
+
+## Install without building an ISO
+
+The installer-first path is optional. Install the official Fedora 44 KDE
+AArch64 image while keeping Windows, boot Fedora, then run:
 
 ```bash
 git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
@@ -37,33 +74,6 @@ installs the SL7 kernel and services, looks for the retained Windows volume, and
 extracts the required firmware. It never partitions a disk or removes Windows.
 Use a USB mouse and USB Ethernet adapter during the initial stock Fedora install
 if the touchpad or Wi-Fi is not usable yet.
-
-The custom redistribution-safe ISO is an optional convenience:
-
-```bash
-git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
-cd Fedora-SL-Remix &&
-sudo ./build.sh
-```
-
-Pass `--with-microsoft-firmware` only for a private ISO that will not be
-redistributed.
-
-Download, verify, and join the latest public release:
-
-```bash
-git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
-cd Fedora-SL-Remix &&
-./scripts/download-release.sh latest
-```
-
-The build needs Linux, Podman, privileged loop/mount support, an internet
-connection, and at least 80 GiB of free space. Native AArch64 is the supported
-and CI-tested build architecture. x86_64 uses AArch64 emulation and is much
-slower. Native Windows, WSL, and Podman Desktop are not supported build hosts.
-Windows and macOS users need a Fedora AArch64 VM with privileged loop-device
-support; that VM route is not CI-tested yet. Most users should download and
-verify the published release artifacts instead of building an ISO locally.
 
 ## Supported devices
 
