@@ -34,9 +34,12 @@ sudo ./build.sh
 
 The finished file is written to `out/` and is named
 `Fedora-SL7-Remix-44-<version>.aarch64.iso`.
+If a build stops before producing an ISO, its complete output is retained in
+`out/build.log`.
 
 The build needs Linux, Podman, privileged loop/mount support, an internet
-connection, and at least 80 GiB of free space. Native AArch64 is the supported
+connection, and at least 20 GiB of free space (30 GiB for a private firmware
+build). Native AArch64 is the supported
 and CI-tested build architecture. x86_64 uses AArch64 emulation and is much
 slower. Native Windows, WSL, and Podman Desktop are not supported build hosts.
 Windows and macOS users need a Fedora AArch64 VM with privileged loop-device

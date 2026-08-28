@@ -28,8 +28,9 @@ machine and use `sudo ./install.sh --bundle /path/to/bundle.tar.zst`.
 
 ## Optional custom ISO
 
-The build host must be Linux with Podman, at least 80 GiB free space, and an
-internet connection. Native AArch64 is supported. An x86_64 host needs working
+The build host must be Linux with Podman, at least 20 GiB free space (30 GiB
+for a private firmware build), and an internet connection. Native AArch64 is
+supported. An x86_64 host needs working
 AArch64 binfmt/QEMU registration and will be substantially slower.
 
 Native Windows is not a supported build environment. The KIWI image build
@@ -62,6 +63,18 @@ policy.
 
 `--clean` removes only `.build/` inside the repository. `--output` can direct
 final artifacts elsewhere; it is never used as a cleanup target.
+
+If a build has already completed the RPM stage but stopped while KIWI creates
+the ISO, `sudo ./build.sh --resume` reuses that validated local RPM repository
+and continues at ISO creation. If a completed redistribution-safe ISO
+checkpoint exists, resume proceeds directly to its read-only inspection and
+release packaging. Do not use `--resume` after changing the source lock,
+packages, kernel patches, or image configuration.
+
+The builder applies a fail-closed, runtime-only KIWI compatibility patch when
+creating the embedded FAT EFI image. FAT cannot store SELinux labels, ACLs, or
+extended attributes, so the patch excludes only that unsupported metadata from
+the temporary EFI copy. It does not alter files installed in the live system.
 
 ## Writing the ISO
 

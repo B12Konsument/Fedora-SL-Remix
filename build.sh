@@ -6,12 +6,17 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly PROJECT_ROOT
 readonly IMAGE_NAME="fedora-sl7-remix-builder"
-readonly MIN_FREE_GIB="${MIN_FREE_GIB:-80}"
 
 firmware_mode=redistributable
 firmware_source=
 output_dir="$PROJECT_ROOT/out"
 clean=0
+resume=0
+if [[ -v MIN_FREE_GIB ]]; then
+    min_free_gib="$MIN_FREE_GIB"
+else
+    min_free_gib=20
+fi
 
 usage() {
     cat <<'EOF'
@@ -24,6 +29,7 @@ Options:
   --firmware-source PATH     Verify and extract firmware from a local copy of the pinned MSI.
   --output DIR               Write final artifacts to DIR (default: ./out).
   --clean                    Remove the project's build cache before building.
+  --resume                   Continue at ISO creation after a failed KIWI stage.
   -h, --help                 Show this help.
 
 The default image is redistribution-safe. Images containing Microsoft firmware
@@ -60,6 +66,10 @@ while (($#)); do
             clean=1
             shift
             ;;
+        --resume)
+            resume=1
+            shift
+            ;;
         -h|--help)
             usage
             exit 0
@@ -67,6 +77,13 @@ while (($#)); do
         *) die "unknown option: $1" ;;
     esac
 done
+
+((clean == 0 || resume == 0)) || die '--clean and --resume cannot be used together'
+
+if [[ "$firmware_mode" != redistributable && ! -v MIN_FREE_GIB ]]; then
+    min_free_gib=30
+fi
+[[ "$min_free_gib" =~ ^[1-9][0-9]*$ ]] || die 'MIN_FREE_GIB must be a positive integer'
 
 [[ "$(uname -s)" == Linux ]] || die 'the builder requires Linux; use a Fedora AArch64 virtual machine'
 command -v podman >/dev/null || die 'Podman is required (Fedora: sudo dnf install podman)'
@@ -85,9 +102,20 @@ esac
 
 ((EUID == 0)) || die 'the KIWI container needs root for loop devices and mounts; run this command with sudo'
 
+if [[ ! -c /dev/loop-control ]]; then
+    command -v modprobe >/dev/null || \
+        die 'loop devices are unavailable and modprobe is missing (Fedora: sudo dnf install kmod)'
+    printf 'Enabling the Linux loop-device driver for ISO inspection.\n'
+    modprobe loop || die 'could not load the Linux loop-device driver; enable loop devices in the build host or VM'
+fi
+[[ -c /dev/loop-control ]] || \
+    die '/dev/loop-control is unavailable; the build host or VM does not expose loop devices'
+compgen -G '/dev/loop[0-9]*' >/dev/null || \
+    die 'no /dev/loopN devices are available; enable loop devices in the build host or VM'
+
 available_kib="$(df -Pk "$PROJECT_ROOT" | awk 'NR==2 {print $4}')"
-required_kib=$((MIN_FREE_GIB * 1024 * 1024))
-((available_kib >= required_kib)) || die "at least ${MIN_FREE_GIB} GiB free space is required"
+required_kib=$((min_free_gib * 1024 * 1024))
+((available_kib >= required_kib)) || die "at least ${min_free_gib} GiB free space is required"
 
 if ((clean)); then
     build_cache="$PROJECT_ROOT/.build"
@@ -96,6 +124,10 @@ if ((clean)); then
 fi
 
 mkdir -p -- "$PROJECT_ROOT/.build" "$output_dir"
+build_log="$output_dir/build.log"
+exec > >(tee -a "$build_log") 2>&1
+printf 'Writing build output to %s\n' "$build_log"
+
 podman build "${platform_args[@]}" --tag "$IMAGE_NAME" --file "$PROJECT_ROOT/build/Containerfile" "$PROJECT_ROOT/build"
 
 container_args=(
@@ -106,6 +138,10 @@ container_args=(
     --volume "$PROJECT_ROOT:/workspace"
     --volume "$output_dir:/output"
 )
+
+if ((resume)); then
+    container_args+=(--env BUILD_PHASE=iso)
+fi
 
 if [[ -n "$firmware_source" ]]; then
     container_args+=(--env FIRMWARE_SOURCE=/run/firmware/SurfaceLaptop7.msi)

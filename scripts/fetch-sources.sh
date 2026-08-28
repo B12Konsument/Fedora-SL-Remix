@@ -32,24 +32,28 @@ while IFS= read -r source_json; do
             expected="$(jq -r .archive_sha256 <<<"$source_json")"
             if [[ ! -d "$destination/.git" ]]; then
                 mkdir -p "$destination"
-                git -C "$destination" init --quiet
-                git -C "$destination" remote add origin "$url"
+                git -c safe.directory="$destination" -C "$destination" init --quiet
+                git -c safe.directory="$destination" -C "$destination" remote add origin "$url"
             fi
             log "Fetching $id at $ref"
-            if ! git -C "$destination" cat-file -e "$ref^{commit}" 2>/dev/null; then
+            # Build directories are bind-mounted from the host and can therefore
+            # have a different numeric owner in a rootless Podman container.
+            # Trust only this source-lock-controlled checkout, never a wildcard.
+            git_source=(git -c safe.directory="$destination" -C "$destination")
+            if ! "${git_source[@]}" cat-file -e "$ref^{commit}" 2>/dev/null; then
                 branch="$(jq -r '.branch // empty' <<<"$source_json")"
                 if [[ -n "$branch" ]]; then
                     fetch_depth="$(jq -r '.fetch_depth // 64' <<<"$source_json")"
-                    git -C "$destination" fetch --quiet --depth="$fetch_depth" origin "$branch"
-                    git -C "$destination" cat-file -e "$ref^{commit}" 2>/dev/null || \
+                    "${git_source[@]}" fetch --quiet --depth="$fetch_depth" origin "$branch"
+                    "${git_source[@]}" cat-file -e "$ref^{commit}" 2>/dev/null || \
                         die "pinned commit for $id is outside the locked branch history window"
                 else
-                    git -C "$destination" fetch --quiet --depth=1 origin "$ref"
+                    "${git_source[@]}" fetch --quiet --depth=1 origin "$ref"
                 fi
             fi
-            git -C "$destination" checkout --quiet --force -B source-lock "$ref"
-            [[ "$(git -C "$destination" rev-parse HEAD)" == "$ref" ]] || die "unexpected commit for $id"
-            actual="$(git -C "$destination" archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
+            "${git_source[@]}" checkout --quiet --force -B source-lock "$ref"
+            [[ "$("${git_source[@]}" rev-parse HEAD)" == "$ref" ]] || die "unexpected commit for $id"
+            actual="$("${git_source[@]}" archive --format=tar HEAD | sha256sum | cut -d' ' -f1)"
             [[ "$actual" == "$expected" ]] || die "archive hash mismatch for $id"
             ;;
         http)

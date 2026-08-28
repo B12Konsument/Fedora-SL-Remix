@@ -7,57 +7,98 @@ source "$PROJECT_ROOT/scripts/lib.sh"
 
 [[ "$(uname -m)" == aarch64 ]] || die 'the build container is not running as AArch64'
 [[ ${FIRMWARE_MODE:-redistributable} =~ ^(redistributable|download|local)$ ]] || die 'invalid FIRMWARE_MODE'
+[[ ${BUILD_PHASE:-all} =~ ^(all|iso)$ ]] || die 'invalid BUILD_PHASE'
 
 "$PROJECT_ROOT/scripts/validate.sh"
-if [[ ${FIRMWARE_MODE:-redistributable} == download ]]; then
-    "$PROJECT_ROOT/scripts/fetch-sources.sh" --include-proprietary
-else
-    "$PROJECT_ROOT/scripts/fetch-sources.sh"
-fi
-"$PROJECT_ROOT/scripts/build-rpms.sh"
 
-mkdir -p "$BUILD_ROOT/repo"
-find "$BUILD_ROOT/repo" -depth -mindepth 1 -delete
-cp "$BUILD_ROOT/rpms"/*.rpm "$BUILD_ROOT/repo/"
-createrepo_c --database "$BUILD_ROOT/repo"
+case ${BUILD_PHASE:-all} in
+    all)
+        if [[ ${FIRMWARE_MODE:-redistributable} == download ]]; then
+            "$PROJECT_ROOT/scripts/fetch-sources.sh" --include-proprietary
+        else
+            "$PROJECT_ROOT/scripts/fetch-sources.sh"
+        fi
 
-"$PROJECT_ROOT/scripts/prepare-kiwi.sh"
+        # The project directory is bind-mounted into a rootless Podman container.  A
+        # source checkout can consequently have an unmapped numeric owner.  Register
+        # only the Git checkouts explicitly listed in the verified source lock, so
+        # downstream packaging tools (which invoke Git themselves) can use them.
+        while IFS= read -r source_id; do
+            git config --global --add safe.directory "$BUILD_ROOT/sources/$source_id"
+        done < <(jq -r '.sources[] | select(.kind == "git") | .id' "$SOURCE_LOCK")
 
-case ${FIRMWARE_MODE:-redistributable} in
-    download)
-        msi="$BUILD_ROOT/downloads/$(jq -r '.sources[] | select(.id == "surface-laptop-7-msi") | .filename' "$SOURCE_LOCK")"
+        "$PROJECT_ROOT/scripts/build-rpms.sh"
+
+        mkdir -p "$BUILD_ROOT/repo"
+        find "$BUILD_ROOT/repo" -depth -mindepth 1 -delete
+        cp "$BUILD_ROOT/rpms"/*.rpm "$BUILD_ROOT/repo/"
+        createrepo_c --database "$BUILD_ROOT/repo"
         ;;
-    local)
-        msi=${FIRMWARE_SOURCE:?FIRMWARE_SOURCE is required for local mode}
-        ;;
-    redistributable)
-        msi=
+    iso)
+        [[ -f "$BUILD_ROOT/repo/repodata/repomd.xml" ]] || \
+            die 'cannot resume: the validated local RPM repository is missing'
+        for rpm_pattern in \
+            'fedora-sl7-remix-support-*.rpm' \
+            'iptsd-sl7-*.rpm' \
+            'sl7-mac-*.rpm' \
+            'qcom-firmware-extract-*.rpm' \
+            'kernel-*.sl7.*.aarch64.rpm'; do
+            compgen -G "$BUILD_ROOT/repo/$rpm_pattern" >/dev/null || \
+                die "cannot resume: local RPM repository lacks $rpm_pattern"
+        done
+        log 'Resuming from the validated local RPM repository'
         ;;
 esac
 
-if [[ -n "$msi" ]]; then
-    warn 'Building a private image with proprietary Microsoft firmware; do not redistribute it'
-    SL7_SOURCE_LOCK="$SOURCE_LOCK" \
-    SL7_FIRMWARE_ROOT="$BUILD_ROOT/kiwi/root/usr/lib/firmware/updates/qcom/x1e80100/microsoft" \
-        "$PROJECT_ROOT/image/root/usr/bin/sl7-firmware" install --msi "$msi"
+final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.1.0}.aarch64.iso"
+reuse_iso=0
+if [[ ${BUILD_PHASE:-all} == iso && ${FIRMWARE_MODE:-redistributable} == redistributable && -s "$final_iso" ]]; then
+    reuse_iso=1
+    log "Reusing the completed ISO checkpoint: $final_iso"
 fi
 
-kiwi_output="$BUILD_ROOT/kiwi-output"
-mkdir -p "$kiwi_output"
-find "$kiwi_output" -depth -mindepth 1 -delete
-log 'Building the Fedora 44 KDE AArch64 live image with KIWI'
-"$BUILD_ROOT/kiwi/kiwi-build" \
-    --kiwi-description-dir="$BUILD_ROOT/kiwi" \
-    --kiwi-file=Fedora.kiwi \
-    --output-dir="$kiwi_output/result" \
-    --image-type=iso \
-    --image-profile=KDE-Desktop-Live \
-    --image-release="${BUILD_VERSION:-0.1.0}"
+if ((reuse_iso == 0)); then
+    "$PROJECT_ROOT/scripts/prepare-kiwi.sh"
+    bash "$PROJECT_ROOT/scripts/patch-kiwi-efi-sync.sh"
 
-iso="$(find "$kiwi_output" -type f -name '*.iso' -print -quit)"
-[[ -n "$iso" ]] || die 'KIWI completed without producing an ISO'
-final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.1.0}.aarch64.iso"
-cp "$iso" "$final_iso"
+    case ${FIRMWARE_MODE:-redistributable} in
+        download)
+            msi="$BUILD_ROOT/downloads/$(jq -r '.sources[] | select(.id == "surface-laptop-7-msi") | .filename' "$SOURCE_LOCK")"
+            ;;
+        local)
+            msi=${FIRMWARE_SOURCE:?FIRMWARE_SOURCE is required for local mode}
+            ;;
+        redistributable)
+            msi=
+            ;;
+    esac
+
+    if [[ -n "$msi" ]]; then
+        warn 'Building a private image with proprietary Microsoft firmware; do not redistribute it'
+        SL7_SOURCE_LOCK="$SOURCE_LOCK" \
+        SL7_FIRMWARE_ROOT="$BUILD_ROOT/kiwi/root/usr/lib/firmware/updates/qcom/x1e80100/microsoft" \
+            "$PROJECT_ROOT/image/root/usr/bin/sl7-firmware" install --msi "$msi"
+    fi
+
+    kiwi_output="$BUILD_ROOT/kiwi-output"
+    mkdir -p "$kiwi_output"
+    find "$kiwi_output" -depth -mindepth 1 -delete
+    log 'Building the Fedora 44 KDE AArch64 live image with KIWI'
+    (
+        cd "$BUILD_ROOT/kiwi"
+        ./kiwi-build \
+            --kiwi-description-dir="$BUILD_ROOT/kiwi" \
+            --kiwi-file=Fedora.kiwi \
+            --output-dir="$kiwi_output/result" \
+            --image-type=iso \
+            --image-profile=KDE-Desktop-Live \
+            --image-release="${BUILD_VERSION:-0.1.0}"
+    )
+
+    iso="$(find "$kiwi_output" -type f -name '*.iso' -print -quit)"
+    [[ -n "$iso" ]] || die 'KIWI completed without producing an ISO'
+    cp "$iso" "$final_iso"
+fi
 
 if [[ ${FIRMWARE_MODE:-redistributable} == redistributable ]]; then
     "$PROJECT_ROOT/scripts/inspect-iso.sh" "$final_iso" --public
