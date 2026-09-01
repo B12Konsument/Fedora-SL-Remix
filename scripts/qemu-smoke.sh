@@ -18,7 +18,7 @@ work="$(mktemp -d /var/tmp/fedora-sl7-qemu.XXXXXX)"
 log_file="$work/serial.log"
 qemu_pid=
 # This function is invoked indirectly by the EXIT trap.
-# shellcheck disable=SC2329
+# shellcheck disable=SC2317,SC2329
 cleanup() {
     if [[ -n "$qemu_pid" ]] && kill -0 "$qemu_pid" 2>/dev/null; then
         kill "$qemu_pid" 2>/dev/null || true

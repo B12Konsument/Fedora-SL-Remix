@@ -28,6 +28,10 @@ jobs:
           ref: ${{ inputs.tag || github.ref }}
       - name: Install the container runtime
         run: sudo apt-get update && sudo apt-get install -y jq podman zip
+      - name: Configure the container runtime for the hosted ARM runner
+        run: |
+          sudo install -D -m 0644 build/containers-ci.conf /etc/containers/containers.conf.d/90-fedora-sl7-ci.conf
+          sudo podman system renumber
       - name: Reclaim runner workspace
         run: |
           sudo find /usr/local/lib/android -depth -delete 2>/dev/null || true

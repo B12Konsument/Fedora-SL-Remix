@@ -40,6 +40,10 @@ jobs:
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install the container runtime
         run: sudo apt-get update && sudo apt-get install -y podman
+      - name: Configure the container runtime for the hosted ARM runner
+        run: |
+          sudo install -D -m 0644 build/containers-ci.conf /etc/containers/containers.conf.d/90-fedora-sl7-ci.conf
+          sudo podman system renumber
       - name: Build the pinned Fedora builder
         run: sudo podman build --tag fedora-sl7-remix-builder --file build/Containerfile build
       - name: Verify locked sources and build integration RPMs
