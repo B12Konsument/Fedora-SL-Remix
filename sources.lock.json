@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "fedora_release": 44,
-  "generated": "2026-08-31",
+  "generated": "2026-09-01",
   "sources": [
     {
       "id": "fedora-44-container-aarch64",
@@ -43,7 +43,7 @@
     {
       "id": "fedora-stock-kernel-modules",
       "kind": "http",
-      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-modules-7.1.10-200.fc44.aarch64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/kernel/7.1.10/200.fc44/aarch64/kernel-modules-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-modules-7.1.10-200.fc44.aarch64.rpm",
       "version": "7.1.10-200.fc44",
       "sha256": "39b3520fc253046be58d8874731b8ca163502f204e44d9a19bc4535e7edc1f49",
@@ -57,7 +57,7 @@
     {
       "id": "fedora-stock-kernel-modules-core",
       "kind": "http",
-      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-modules-core-7.1.10-200.fc44.aarch64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/kernel/7.1.10/200.fc44/aarch64/kernel-modules-core-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-modules-core-7.1.10-200.fc44.aarch64.rpm",
       "version": "7.1.10-200.fc44",
       "sha256": "862006c962f829ec8321292cd7e990588d26e79e6cd0d93e7bbff13a2f257504",
@@ -71,7 +71,7 @@
     {
       "id": "fedora-stock-kernel-uki-dtbloader",
       "kind": "http",
-      "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-uki-dtbloader-7.1.10-200.fc44.aarch64.rpm",
+      "url": "https://kojipkgs.fedoraproject.org/packages/kernel/7.1.10/200.fc44/aarch64/kernel-uki-dtbloader-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-uki-dtbloader-7.1.10-200.fc44.aarch64.rpm",
       "version": "7.1.10-200.fc44",
       "sha256": "8cc53ec5d74b74b9b0a0232ca01c32ec0713d88db5c434f6c767c7f8d2afc6e0",
