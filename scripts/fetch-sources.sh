@@ -68,8 +68,10 @@ while IFS= read -r source_json; do
             if [[ -n "$signature_fingerprint" ]]; then
                 require_command rpmkeys
                 signature_report="$(rpmkeys --checksig --verbose "$destination")"
-                grep -Fq "key fingerprint: $signature_fingerprint: OK" <<<"$signature_report" || \
+                if ! grep -Fiq "key fingerprint: $signature_fingerprint: OK" <<<"$signature_report"; then
+                    printf '%s\n' "$signature_report" >&2
                     die "RPM signature mismatch for $id"
+                fi
             fi
             ;;
         oci)
