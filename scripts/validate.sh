@@ -51,7 +51,9 @@ stock_kernel_evr="$(jq -er '.sources[] | select(.id == "fedora-kernel-distgit") 
 mapfile -t stock_kernel_rpms < <(jq -r '.sources[] | select(.role? == "stock-kernel-fallback") | .filename' "$SOURCE_LOCK" | sort)
 [[ ${#stock_kernel_rpms[@]} -eq 3 ]] || die 'the source lock must contain the three stock Fedora fallback-kernel RPMs'
 jq -e 'all(.sources[] | select(.role? == "stock-kernel-fallback");
-    .signature_fingerprint | test("^[0-9a-f]{40}$"))' "$SOURCE_LOCK" >/dev/null
+    (.signature_fingerprint | test("^[0-9a-f]{40}$")) and
+    (.url | startswith("https://kojipkgs.fedoraproject.org/packages/kernel/") and contains("/data/signed/")))' \
+    "$SOURCE_LOCK" >/dev/null
 for package in kernel-modules kernel-modules-core kernel-uki-dtbloader; do
     grep -Fqx "Requires:       $package = $stock_kernel_evr" \
         "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec" || \
