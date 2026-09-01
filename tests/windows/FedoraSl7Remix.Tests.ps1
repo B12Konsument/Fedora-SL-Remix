@@ -7,9 +7,9 @@ BeforeAll {
         [long]$baseSize = 300MB
         return [pscustomobject][ordered]@{
             schema = 1
-            minimum_customizer_version = '0.2.0'
+            minimum_customizer_version = '0.2.1'
             fedora_release = 44
-            remix_version = '0.2.0'
+            remix_version = '0.2.1'
             source_lock_sha256 = '1' * 64
             base_iso = [pscustomobject]@{
                 name = 'Fedora-SL7-base.aarch64.iso'
@@ -52,19 +52,23 @@ Describe 'Windows ARM64 validation' {
 
 Describe 'release layout validation' {
     It 'accepts the fixed versioned layout' {
-        { Assert-Sl7PersonalizationLayout -Layout (New-Sl7TestLayout) -CustomizerVersion '0.2.0' } | Should -Not -Throw
+        { Assert-Sl7PersonalizationLayout -Layout (New-Sl7TestLayout) -CustomizerVersion '0.2.1' } | Should -Not -Throw
+    }
+
+    It 'rejects the previous Windows customizer version' {
+        { Assert-Sl7PersonalizationLayout -Layout (New-Sl7TestLayout) -CustomizerVersion '0.2.0' } | Should -Throw
     }
 
     It 'rejects overlapping personalization slots' {
         $layout = New-Sl7TestLayout
         $layout.slots.personalization.offset = $layout.slots.model_selector.offset
-        { Assert-Sl7PersonalizationLayout -Layout $layout -CustomizerVersion '0.2.0' } | Should -Throw
+        { Assert-Sl7PersonalizationLayout -Layout $layout -CustomizerVersion '0.2.1' } | Should -Throw
     }
 
     It 'rejects an unsafe release-part name' {
         $layout = New-Sl7TestLayout
         $layout.base_iso.parts[0].name = '../base.part-000'
-        { Assert-Sl7PersonalizationLayout -Layout $layout -CustomizerVersion '0.2.0' } | Should -Throw
+        { Assert-Sl7PersonalizationLayout -Layout $layout -CustomizerVersion '0.2.1' } | Should -Throw
     }
 }
 
@@ -87,11 +91,11 @@ Describe 'UAC handoff' {
 
     It 'round-trips every elevation parameter and deletes the handoff' {
         $handoff = Join-Path $TestDrive 'options with spaces.json'
-        $hash = New-Sl7ElevationHandoff -Path $handoff -Release 'v0.2.0' -FirmwareSource 'Windows' `
+        $hash = New-Sl7ElevationHandoff -Path $handoff -Release 'v0.2.1' -FirmwareSource 'Windows' `
             -MsiPath 'C:\Fixture Path\firmware.msi' -OutputDirectory 'C:\Fixture User\Cloud Downloads' `
             -Model 'Romulus15' -KeepCache $true -LayoutPath 'C:\Fixture Path\layout.json'
         $saved = Read-Sl7ElevationHandoff -Path $handoff -ExpectedSha256 $hash
-        $saved.Release | Should -Be 'v0.2.0'
+        $saved.Release | Should -Be 'v0.2.1'
         $saved.FirmwareSource | Should -Be 'Windows'
         $saved.MsiPath | Should -Be 'C:\Fixture Path\firmware.msi'
         $saved.OutputDirectory | Should -Be 'C:\Fixture User\Cloud Downloads'

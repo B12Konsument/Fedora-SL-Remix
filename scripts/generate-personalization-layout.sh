@@ -54,7 +54,7 @@ jq -n \
     --argjson msi "$msi" \
     '{
       schema:1,
-      minimum_customizer_version:"0.2.0",
+      minimum_customizer_version:"0.2.1",
       fedora_release:44,
       remix_version:$version,
       source_lock_sha256:$source_lock_sha256,

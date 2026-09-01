@@ -44,7 +44,7 @@ case ${BUILD_PHASE:-all} in
         ;;
 esac
 
-final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.2.0}-base.aarch64.iso"
+final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.2.1}-base.aarch64.iso"
 reuse_iso=0
 if [[ ${BUILD_PHASE:-all} == iso && -s "$final_iso" ]]; then
     reuse_iso=1
@@ -67,7 +67,7 @@ if ((reuse_iso == 0)); then
             --output-dir="$kiwi_output/result" \
             --image-type=iso \
             --image-profile=KDE-Desktop-Live \
-            --image-release="${BUILD_VERSION:-0.2.0}"
+            --image-release="${BUILD_VERSION:-0.2.1}"
     )
 
     iso="$(find "$kiwi_output" -type f -name '*.iso' -print -quit)"

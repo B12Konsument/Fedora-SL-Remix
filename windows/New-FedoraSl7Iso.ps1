@@ -51,7 +51,7 @@ param(
 Set-StrictMode -Version 2.0
 $ErrorActionPreference = 'Stop'
 Import-Module (Join-Path $PSScriptRoot 'FedoraSl7Remix.psm1') -Force
-$customizerVersion = [version]'0.2.0'
+$customizerVersion = [version]'0.2.1'
 
 function Write-Step {
     param([string]$Text)
