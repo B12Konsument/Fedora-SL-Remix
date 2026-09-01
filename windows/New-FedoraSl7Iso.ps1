@@ -76,10 +76,11 @@ function Remove-SafeDirectory {
 }
 
 if ($OptionsFile) {
-    if (-not $OptionsSha256 -or (Get-Sl7Sha256 $OptionsFile) -ne $OptionsSha256.ToLowerInvariant()) {
+    if (-not $OptionsSha256) {
+        Remove-Item -Force -LiteralPath $OptionsFile -ErrorAction SilentlyContinue
         throw 'The UAC handoff options failed integrity verification.'
     }
-    $saved = Get-Content -LiteralPath $OptionsFile -Raw | ConvertFrom-Json
+    $saved = Read-Sl7ElevationHandoff -Path $OptionsFile -ExpectedSha256 $OptionsSha256
     $Release = [string]$saved.Release
     $FirmwareSource = [string]$saved.FirmwareSource
     $MsiPath = [string]$saved.MsiPath
@@ -97,20 +98,13 @@ $OutputDirectory = [IO.Path]::GetFullPath($OutputDirectory)
 
 if (-not (Test-Sl7Administrator)) {
     $elevationFile = Join-Path $env:TEMP ("fedora-sl7-elevation-{0}.json" -f [Guid]::NewGuid().ToString('N'))
-    [ordered]@{
-        Release = $Release
-        FirmwareSource = $FirmwareSource
-        MsiPath = $MsiPath
-        OutputDirectory = $OutputDirectory
-        Model = $Model
-        KeepCache = [bool]$KeepCache
-        LayoutPath = $LayoutPath
-    } | ConvertTo-Json | Set-Content -LiteralPath $elevationFile -Encoding UTF8
-    $elevationHash = Get-Sl7Sha256 $elevationFile
-    Write-Step 'Administrator access is required to read the signed Windows driver store.'
-    $arguments = New-Sl7ElevationArguments -ScriptPath $PSCommandPath -OptionsFile $elevationFile -OptionsSha256 $elevationHash
     try {
-        $child = Start-Process -FilePath 'powershell.exe' -ArgumentList $arguments -Verb RunAs -Wait -PassThru
+        $elevationHash = New-Sl7ElevationHandoff -Path $elevationFile -Release $Release `
+            -FirmwareSource $FirmwareSource -MsiPath $MsiPath -OutputDirectory $OutputDirectory `
+            -Model $Model -KeepCache ([bool]$KeepCache) -LayoutPath $LayoutPath
+        Write-Step 'Administrator access is required to read the signed Windows driver store.'
+        $arguments = New-Sl7ElevationArguments -ScriptPath $PSCommandPath -OptionsFile $elevationFile -OptionsSha256 $elevationHash
+        $child = Start-Sl7ElevatedPowerShell -ArgumentList $arguments
     }
     finally {
         Remove-Item -Force -LiteralPath $elevationFile -ErrorAction SilentlyContinue

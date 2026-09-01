@@ -76,6 +76,39 @@ Describe 'UAC handoff' {
         $arguments | Should -Contain '"C:\Temp Path\options.json"'
         $arguments[-1] | Should -Be $hash
     }
+
+    It 'reports a cancelled UAC prompt with a clear English error' {
+        Mock -ModuleName FedoraSl7Remix Start-Process {
+            $nativeError = [ComponentModel.Win32Exception]::new(1223)
+            throw [InvalidOperationException]::new('Start-Process failed', $nativeError)
+        }
+        { Start-Sl7ElevatedPowerShell -ArgumentList @('-NoProfile') } | Should -Throw '*cancelled by the user*'
+    }
+
+    It 'round-trips every elevation parameter and deletes the handoff' {
+        $handoff = Join-Path $TestDrive 'options with spaces.json'
+        $hash = New-Sl7ElevationHandoff -Path $handoff -Release 'v0.2.0' -FirmwareSource 'Windows' `
+            -MsiPath 'C:\Fixture Path\firmware.msi' -OutputDirectory 'C:\Fixture User\Cloud Downloads' `
+            -Model 'Romulus15' -KeepCache $true -LayoutPath 'C:\Fixture Path\layout.json'
+        $saved = Read-Sl7ElevationHandoff -Path $handoff -ExpectedSha256 $hash
+        $saved.Release | Should -Be 'v0.2.0'
+        $saved.FirmwareSource | Should -Be 'Windows'
+        $saved.MsiPath | Should -Be 'C:\Fixture Path\firmware.msi'
+        $saved.OutputDirectory | Should -Be 'C:\Fixture User\Cloud Downloads'
+        $saved.Model | Should -Be 'Romulus15'
+        $saved.KeepCache | Should -BeTrue
+        $saved.LayoutPath | Should -Be 'C:\Fixture Path\layout.json'
+        Test-Path -LiteralPath $handoff | Should -BeFalse
+    }
+
+    It 'rejects and deletes a tampered elevation handoff' {
+        $handoff = Join-Path $TestDrive 'tampered-options.json'
+        $hash = New-Sl7ElevationHandoff -Path $handoff -Release 'latest' -FirmwareSource 'Auto' `
+            -OutputDirectory 'C:\Fixture User\Downloads' -Model 'Auto' -KeepCache $false
+        Add-Content -LiteralPath $handoff -Value 'tampered'
+        { Read-Sl7ElevationHandoff -Path $handoff -ExpectedSha256 $hash } | Should -Throw '*integrity verification*'
+        Test-Path -LiteralPath $handoff | Should -BeFalse
+    }
 }
 
 Describe 'Downloads known folder' {
@@ -108,6 +141,14 @@ Describe 'Surface hardware mapping' {
         (Get-Sl7Hardware -ComputerSystem $system -ComputerSystemProduct $product).Model | Should -Be 'Romulus15'
     }
 
+    It 'maps the business SKU 2037 to Romulus15' {
+        $system = [pscustomobject]@{ SystemSKUNumber = 'Surface_Laptop_7th_Edition_For_Business_2037'; Model = 'Surface' }
+        $product = [pscustomobject]@{ Name = ''; Version = '' }
+        $result = Get-Sl7Hardware -ComputerSystem $system -ComputerSystemProduct $product
+        $result.Sku | Should -Be 'Surface_Laptop_7th_Edition_2037'
+        $result.Model | Should -Be 'Romulus15'
+    }
+
     It 'rejects an unsupported system before download' {
         $system = [pscustomobject]@{ SystemSKUNumber = 'Unsupported_Device'; Model = 'Surface Pro' }
         $product = [pscustomobject]@{ Name = ''; Version = '' }
@@ -118,6 +159,12 @@ Describe 'Surface hardware mapping' {
         $system = [pscustomobject]@{ SystemSKUNumber = 'Surface_Laptop_7th_Edition_2038_Intel'; Model = 'Surface' }
         $product = [pscustomobject]@{ Name = ''; Version = '' }
         { Get-Sl7Hardware -Model Romulus15 -ComputerSystem $system -ComputerSystemProduct $product } | Should -Throw
+    }
+
+    It 'rejects a supported SKU prefix with an Intel suffix' {
+        $system = [pscustomobject]@{ SystemSKUNumber = 'Surface_Laptop_7th_Edition_2037_Intel'; Model = 'Surface' }
+        $product = [pscustomobject]@{ Name = ''; Version = '' }
+        { Get-Sl7Hardware -ComputerSystem $system -ComputerSystemProduct $product } | Should -Throw
     }
 
     It 'allows the alternate DTB only on a supported SL7 SKU' {
@@ -286,8 +333,35 @@ Describe 'firmware completeness and redaction' {
         }
         Test-Sl7MicrosoftSignature -FilePath 'unused-fixture' -Signature $microsoft | Should -BeTrue
         Test-Sl7MicrosoftSignature -FilePath 'unused-fixture' -Signature $other | Should -BeFalse
+        $other.SignerCertificate.Subject = 'CN=NotMicrosoft Firmware Publisher'
+        Test-Sl7MicrosoftSignature -FilePath 'unused-fixture' -Signature $other | Should -BeFalse
         $microsoft.Status = 'HashMismatch'
         Test-Sl7MicrosoftSignature -FilePath 'unused-fixture' -Signature $microsoft | Should -BeFalse
+    }
+
+    It 'uses the Windows catalog-aware signature result for a package file' {
+        $package = Join-Path $TestDrive 'signed-package'
+        New-Item -ItemType Directory -Force -Path $package | Out-Null
+        $firmware = Join-Path $package 'firmware.mbn'
+        [IO.File]::WriteAllText($firmware, 'synthetic-firmware')
+        Mock -ModuleName FedoraSl7Remix Get-AuthenticodeSignature {
+            [pscustomobject]@{
+                Status = 'Valid'
+                SignerCertificate = [pscustomobject]@{ Subject = 'CN=Microsoft Windows Hardware Compatibility Publisher' }
+            }
+        }
+        Test-Sl7MicrosoftCatalog -Directory $package -FilePath $firmware | Should -BeTrue
+        Should -Invoke -ModuleName FedoraSl7Remix Get-AuthenticodeSignature -Times 1 -Exactly
+    }
+
+    It 'rejects a catalog-aware signature check outside the package root' {
+        $package = Join-Path $TestDrive 'signed-package'
+        New-Item -ItemType Directory -Force -Path $package | Out-Null
+        $outside = Join-Path $TestDrive 'outside.mbn'
+        [IO.File]::WriteAllText($outside, 'synthetic-firmware')
+        Mock -ModuleName FedoraSl7Remix Get-AuthenticodeSignature { throw 'must not be called' }
+        Test-Sl7MicrosoftCatalog -Directory $package -FilePath $outside | Should -BeFalse
+        Should -Invoke -ModuleName FedoraSl7Remix Get-AuthenticodeSignature -Times 0 -Exactly
     }
 
     It 'rejects an MSI before extraction when its locked hash differs' {
@@ -322,5 +396,34 @@ Describe 'firmware completeness and redaction' {
         $result.Count | Should -Be 2
         $result | Should -Contain 'C:\Windows\System32\DriverStore\FileRepository\qcdx8380.inf_arm64_deadbeef'
         $result | Should -Not -Contain 'C:\Windows\System32\DriverStore\FileRepository\unused.inf_arm64_0000'
+    }
+
+    It 'resolves active PnPUtil INF packages and excludes inactive packages' {
+        $driverStore = Join-Path $TestDrive 'FileRepository'
+        $windowsInf = Join-Path $TestDrive 'INF'
+        $activeRoot = Join-Path $driverStore 'qcdx8380.inf_arm64_deadbeef'
+        $inactiveRoot = Join-Path $driverStore 'unused.inf_arm64_cafebabe'
+        New-Item -ItemType Directory -Force -Path $activeRoot, $inactiveRoot, $windowsInf | Out-Null
+        [IO.File]::WriteAllText((Join-Path $windowsInf 'oem42.inf'), 'active-package')
+        [IO.File]::WriteAllText((Join-Path $activeRoot 'qcdx8380.inf'), 'active-package')
+        [IO.File]::WriteAllText((Join-Path $windowsInf 'oem43.inf'), 'inactive-package')
+        [IO.File]::WriteAllText((Join-Path $inactiveRoot 'unused.inf'), 'inactive-package')
+        [xml]$inventory = @'
+<PnpUtil>
+  <Driver DriverName="oem42.inf">
+    <OriginalName>qcdx8380.inf</OriginalName>
+    <Devices><Device><Status>Started</Status></Device></Devices>
+    <Files><File Name="qcdxkmsuc8380.mbn" /></Files>
+  </Driver>
+  <Driver DriverName="oem43.inf">
+    <OriginalName>unused.inf</OriginalName>
+    <Files><File Name="unused.sys" /></Files>
+  </Driver>
+</PnpUtil>
+'@
+        $result = @(Get-Sl7PnpPackageDirectories -Inventory $inventory -DriverStore $driverStore -WindowsInf $windowsInf)
+        $result | Should -Contain $activeRoot
+        $result | Should -Not -Contain $inactiveRoot
+        $result.Count | Should -Be 1
     }
 }

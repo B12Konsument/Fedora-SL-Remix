@@ -36,7 +36,7 @@ function Get-Sl7DownloadsPath {
     param([string]$RegistryValue, [string]$UserProfile)
     $key = 'HKCU:\Software\Microsoft\Windows\CurrentVersion\Explorer\User Shell Folders'
     $name = '{374DE290-123F-4565-9164-39C4925E467B}'
-    if (-not $RegistryValue) {
+    if (-not $RegistryValue -and -not $PSBoundParameters.ContainsKey('UserProfile')) {
         try {
             $RegistryValue = (Get-ItemProperty -LiteralPath $key -Name $name).$name
         }
@@ -59,6 +59,62 @@ function New-Sl7ElevationArguments {
         '-NoProfile', '-ExecutionPolicy', 'Bypass', '-File', "`"$ScriptPath`"",
         '-OptionsFile', "`"$OptionsFile`"", '-OptionsSha256', $OptionsSha256
     )
+}
+
+function New-Sl7ElevationHandoff {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$Release,
+        [Parameter(Mandatory = $true)][string]$FirmwareSource,
+        [string]$MsiPath,
+        [Parameter(Mandatory = $true)][string]$OutputDirectory,
+        [Parameter(Mandatory = $true)][string]$Model,
+        [bool]$KeepCache,
+        [string]$LayoutPath
+    )
+    [ordered]@{
+        Release = $Release
+        FirmwareSource = $FirmwareSource
+        MsiPath = $MsiPath
+        OutputDirectory = $OutputDirectory
+        Model = $Model
+        KeepCache = $KeepCache
+        LayoutPath = $LayoutPath
+    } | ConvertTo-Json | Set-Content -LiteralPath $Path -Encoding UTF8
+    return Get-Sl7Sha256 $Path
+}
+
+function Read-Sl7ElevationHandoff {
+    param(
+        [Parameter(Mandatory = $true)][string]$Path,
+        [Parameter(Mandatory = $true)][string]$ExpectedSha256
+    )
+    try {
+        if ((Get-Sl7Sha256 $Path) -ne $ExpectedSha256.ToLowerInvariant()) {
+            throw 'The UAC handoff options failed integrity verification.'
+        }
+        return Get-Content -LiteralPath $Path -Raw | ConvertFrom-Json
+    }
+    finally {
+        Remove-Item -Force -LiteralPath $Path -ErrorAction SilentlyContinue
+    }
+}
+
+function Start-Sl7ElevatedPowerShell {
+    param([Parameter(Mandatory = $true)][string[]]$ArgumentList)
+    try {
+        return Start-Process -FilePath 'powershell.exe' -ArgumentList $ArgumentList -Verb RunAs -Wait -PassThru -ErrorAction Stop
+    }
+    catch {
+        $exception = $_.Exception
+        while ($null -ne $exception) {
+            if ($exception -is [ComponentModel.Win32Exception] -and $exception.NativeErrorCode -eq 1223) {
+                throw 'Administrator access was cancelled by the user.'
+            }
+            $exception = $exception.InnerException
+        }
+        throw
+    }
 }
 
 function Assert-Sl7WindowsArm64 {
@@ -105,8 +161,8 @@ function Get-Sl7Hardware {
     $sku = $null
     foreach ($candidate in $candidates) {
         $normalized = (($candidate -replace '[^A-Za-z0-9]+', '_').Trim('_'))
-        if ($normalized -match 'Surface_Laptop_7th_Edition_2036') { $sku = 'Surface_Laptop_7th_Edition_2036'; break }
-        if ($normalized -match 'Surface_Laptop_7th_Edition_2037') { $sku = 'Surface_Laptop_7th_Edition_2037'; break }
+        if ($normalized -match '^Surface_Laptop_7th_Edition_(For_Business_)?2036$') { $sku = 'Surface_Laptop_7th_Edition_2036'; break }
+        if ($normalized -match '^Surface_Laptop_7th_Edition_(For_Business_)?2037$') { $sku = 'Surface_Laptop_7th_Edition_2037'; break }
     }
     if ($null -eq $sku) {
         throw 'This is not a supported Surface Laptop 7 (expected Microsoft system SKU 2036 or 2037).'
@@ -365,19 +421,10 @@ function Test-Sl7MicrosoftCatalog {
         [Parameter(Mandatory = $true)][string]$Directory,
         [Parameter(Mandatory = $true)][string]$FilePath
     )
-    if (-not (Get-Command Test-FileCatalog -ErrorAction SilentlyContinue)) { return $false }
-    foreach ($catalog in Get-ChildItem -LiteralPath $Directory -Filter '*.cat' -File -ErrorAction SilentlyContinue) {
-        $signature = Get-AuthenticodeSignature -LiteralPath $catalog.FullName
-        if ($signature.Status -eq 'Valid' -and $null -ne $signature.SignerCertificate -and
-            $signature.SignerCertificate.Subject -match 'Microsoft') {
-            try {
-                $catalogStatus = Test-FileCatalog -Path $FilePath -CatalogFilePath $catalog.FullName -ErrorAction Stop
-                if ([string]$catalogStatus -eq 'Valid') { return $true }
-            }
-            catch { continue }
-        }
-    }
-    return $false
+    $directoryFull = [IO.Path]::GetFullPath($Directory).TrimEnd('\', '/') + [IO.Path]::DirectorySeparatorChar
+    $fileFull = [IO.Path]::GetFullPath($FilePath)
+    if (-not $fileFull.StartsWith($directoryFull, [StringComparison]::OrdinalIgnoreCase)) { return $false }
+    return Test-Sl7MicrosoftSignature -FilePath $fileFull
 }
 
 function Test-Sl7MicrosoftSignature {
@@ -389,30 +436,61 @@ function Test-Sl7MicrosoftSignature {
         $Signature = Get-AuthenticodeSignature -LiteralPath $FilePath
     }
     return $Signature.Status -eq 'Valid' -and $null -ne $Signature.SignerCertificate -and
-        $Signature.SignerCertificate.Subject -match 'Microsoft'
+        $Signature.SignerCertificate.Subject -match '(?i)(^|,\s*)(CN|O)=Microsoft(?:\s|,|$)'
 }
 
 function Get-Sl7PnpPackageDirectories {
     param(
         [Parameter(Mandatory = $true)][xml]$Inventory,
-        [Parameter(Mandatory = $true)][string]$DriverStore
+        [Parameter(Mandatory = $true)][string]$DriverStore,
+        [string]$WindowsInf
     )
     $directories = @{}
     $drivers = @($Inventory.SelectNodes("//*[local-name()='driver' or local-name()='Driver']"))
     $scopes = if ($drivers.Count -gt 0) { $drivers } else { @($Inventory.DocumentElement) }
+    $isPnpUtilSchema = $Inventory.DocumentElement.LocalName -eq 'PnpUtil'
+    if ($isPnpUtilSchema -and -not $WindowsInf) {
+        $driverStoreDirectory = Split-Path -Parent $DriverStore
+        $system32Directory = Split-Path -Parent $driverStoreDirectory
+        $windowsDirectory = Split-Path -Parent $system32Directory
+        $WindowsInf = Join-Path $windowsDirectory 'INF'
+    }
     foreach ($scope in $scopes) {
         $devices = $scope.SelectSingleNode(".//*[local-name()='devices' or local-name()='Devices']")
-        if ($null -ne $devices) {
+        if ($isPnpUtilSchema) {
+            $activeDevices = @($scope.SelectNodes("./*[local-name()='Devices']/*[local-name()='Device']"))
+            if ($activeDevices.Count -eq 0) { continue }
+        }
+        elseif ($null -ne $devices) {
             $count = $devices.SelectSingleNode("./*[local-name()='count' or local-name()='Count']")
             $countValue = if ($null -ne $count) { [string]$count.InnerText } else { [string]$devices.GetAttribute('count') }
             if ($countValue -match '^\s*0\s*$') { continue }
         }
-        foreach ($node in $scope.SelectNodes('.//text()')) {
+        foreach ($node in $scope.SelectNodes('.//@* | .//text()')) {
             $value = ([string]$node.Value).Replace('/', '\')
             if ($value -match '(?i)FileRepository\\([^\\]+)') {
                 # These are Windows paths even when this pure parser is exercised by
                 # cross-platform CI, so do not ask the current path provider to resolve C:.
                 $directories[($DriverStore.TrimEnd('\') + '\' + $Matches[1])] = $true
+            }
+        }
+        if ($isPnpUtilSchema) {
+            $publishedName = [string]$scope.GetAttribute('DriverName')
+            $originalNameNode = $scope.SelectSingleNode("./*[local-name()='OriginalName']")
+            $originalName = if ($null -ne $originalNameNode) { [string]$originalNameNode.InnerText } else { '' }
+            if ($publishedName -notmatch '^[A-Za-z0-9._-]+\.inf$' -or
+                $originalName -notmatch '^[A-Za-z0-9._-]+\.inf$') {
+                continue
+            }
+            $publishedInf = Join-Path $WindowsInf $publishedName
+            if (-not (Test-Path -LiteralPath $publishedInf -PathType Leaf)) { continue }
+            $publishedHash = Get-Sl7Sha256 $publishedInf
+            foreach ($candidate in @(Get-ChildItem -LiteralPath $DriverStore -Directory -Filter ($originalName + '_*') -ErrorAction SilentlyContinue)) {
+                $candidateInf = Join-Path $candidate.FullName $originalName
+                if ((Test-Path -LiteralPath $candidateInf -PathType Leaf) -and
+                    (Get-Sl7Sha256 $candidateInf) -eq $publishedHash) {
+                    $directories[$candidate.FullName] = $true
+                }
             }
         }
     }
@@ -745,8 +823,8 @@ Export-ModuleMember -Function @(
     'Get-Sl7FirmwareFromTree', 'Get-Sl7GitHubRelease', 'Get-Sl7Hardware',
     'Get-Sl7PnpPackageDirectories', 'Get-Sl7ReleaseAssetUrl', 'Get-Sl7RequiredFirmware', 'Get-Sl7SegmentSha256',
     'Get-Sl7Sha256', 'Get-Sl7WindowsFirmware', 'Join-Sl7BaseIso',
-    'New-Sl7ElevationArguments', 'New-Sl7ModelSelector', 'New-Sl7PersonalizationCpio', 'Publish-Sl7AtomicIso',
-    'Receive-Sl7BitsFile', 'Receive-Sl7File', 'Receive-Sl7HttpsPartial',
-    'Receive-Sl7HttpsPartial', 'Set-Sl7IsoSlot', 'Test-Sl7Administrator', 'Test-Sl7MicrosoftCatalog',
+    'New-Sl7ElevationArguments', 'New-Sl7ElevationHandoff', 'New-Sl7ModelSelector', 'New-Sl7PersonalizationCpio',
+    'Publish-Sl7AtomicIso', 'Read-Sl7ElevationHandoff', 'Receive-Sl7BitsFile', 'Receive-Sl7File', 'Receive-Sl7HttpsPartial',
+    'Receive-Sl7HttpsPartial', 'Set-Sl7IsoSlot', 'Start-Sl7ElevatedPowerShell', 'Test-Sl7Administrator', 'Test-Sl7MicrosoftCatalog',
     'Test-Sl7MicrosoftSignature'
 )
