@@ -1,111 +1,61 @@
-# Building and installing
+# Maintainer building and release process
 
-## Recommended installation
+End users should use the Windows command in the README. This document covers
+the redistribution-safe base build.
 
-1. Disable Secure Boot in Surface UEFI.
-2. Back up Windows and the BitLocker recovery key.
-3. Boot the official Fedora 44 KDE AArch64 ISO and install Fedora alongside
-   Windows. Do not delete the Windows recovery or system volume.
-4. Boot Fedora. Use temporary USB input/network devices if necessary.
-5. Run:
+## Requirements
 
-   ```bash
-   git clone https://github.com/B12Konsument/Fedora-SL-Remix.git &&
-   cd Fedora-SL-Remix &&
-   sudo ./install.sh
-   ```
+- Linux with Podman.
+- Native AArch64, or x86_64 with registered AArch64 binfmt/QEMU emulation.
+- Privileged loop devices and mounts.
+- Network access and at least 20 GiB free.
 
-6. Reboot and confirm `uname -r` contains `.sl7.`.
-7. Run `sudo sl7-firmware status` and complete any missing firmware with the
-   desktop assistant.
-
-The Fedora boot menu retains an unmodified Fedora UKI as a recovery choice.
-Routine Fedora updates do not replace the `.sl7` default selected by the
-project's systemd service.
-
-For an offline installation, download a release package bundle on another
-machine and use `sudo ./install.sh --bundle /path/to/bundle.tar.zst`.
-
-## Optional custom ISO
-
-The build host must be Linux with Podman, at least 20 GiB free space (30 GiB
-for a private firmware build), and an internet connection. Native AArch64 is
-supported. An x86_64 host needs working
-AArch64 binfmt/QEMU registration and will be substantially slower.
-
-Native Windows is not a supported build environment. The KIWI image build
-needs privileged Linux mounts, loop devices, and container operations that are
-not provided reliably by WSL or Podman Desktop. On a Windows-on-Arm Surface, a
-Fedora AArch64 VM may be used only if it exposes privileged loop devices. This
-path is currently experimental and is not covered by CI. Use a
-native Fedora AArch64 machine, a suitable Fedora AArch64 build VM/cloud host,
-or the published release image for predictable results.
+Run:
 
 ```bash
 sudo ./build.sh
 ```
 
-The default build is safe to redistribute. A private build can embed firmware:
+Artifacts are written to `out/`. The ISO is named
+`Fedora-SL7-Remix-44-<version>-base.aarch64.iso`. It deliberately contains no
+Microsoft firmware and refuses normal boot until personalized.
 
-```bash
-sudo ./build.sh --with-microsoft-firmware
+Options:
+
+```text
+sudo ./build.sh --output /path/to/output
+sudo ./build.sh --clean
+sudo ./build.sh --resume
 ```
 
-or use a previously downloaded, exactly pinned MSI:
+`--clean` removes the build cache before rebuilding. `--resume` reuses an
+already validated local RPM repository after a KIWI-stage failure. Do not
+resume after changing packages, image configuration, source locks, or kernel
+patches.
+
+To remove all known generated repository artifacts, including root-owned KIWI
+trees and old output images, run:
 
 ```bash
-sudo ./build.sh --firmware-source /path/to/SurfaceLaptop7_ARM_Win11.msi
+sudo ./scripts/clean.sh
 ```
 
-Never publish the private result. The public CI workflow has a separate
-denylist inspection, but a local private build intentionally bypasses that
-policy.
+Add `--include-container` only when the exact local builder image should also
+be removed.
 
-`--clean` removes only `.build/` inside the repository. `--output` can direct
-final artifacts elsewhere; it is never used as a cleanup target.
+## Release preparation
 
-If a build has already completed the RPM stage but stopped while KIWI creates
-the ISO, `sudo ./build.sh --resume` reuses that validated local RPM repository
-and continues at ISO creation. If a completed redistribution-safe ISO
-checkpoint exists, resume proceeds directly to its read-only inspection and
-release packaging. Do not use `--resume` after changing the source lock,
-packages, kernel patches, or image configuration.
+Tag CI builds the base on AArch64, inspects the mounted live filesystem, runs a
+QEMU smoke test, splits the ISO below 1.9 GiB, packages the PowerShell files,
+and finalizes `personalization-layout.json` with part and bundle hashes.
 
-The builder applies a fail-closed, runtime-only KIWI compatibility patch when
-creating the embedded FAT EFI image. FAT cannot store SELinux labels, ACLs, or
-extended attributes, so the patch excludes only that unsupported metadata from
-the temporary EFI copy. It does not alter files installed in the live system.
+Every GitHub Action is pinned to a commit SHA. Releases remain prereleases
+until the 15-inch physical checklist passes. A public job must fail if known
+Microsoft firmware paths or an MSI are present.
 
-## Writing the ISO
+## Source updates
 
-First identify the entire USB device, not one of its partitions:
-
-```bash
-lsblk -o NAME,SIZE,MODEL,TRAN,MOUNTPOINTS
-```
-
-After verifying the target, unmount its partitions and write the image:
-
-```bash
-sudo dd if=Fedora-SL7-Remix-44-VERSION.aarch64.iso of=/dev/sdX bs=8M status=progress conv=fsync
-```
-
-This overwrites the selected device. Replace `/dev/sdX` only after checking its
-model and size. The project cannot recover data written over by `dd`.
-
-## Release downloads
-
-GitHub release assets larger than 2 GiB are published as numbered parts. The
-download helper verifies every part, joins them into a temporary file, verifies
-the complete ISO, and only then renames it:
-
-```bash
-./scripts/download-release.sh latest
-```
-
-## Updating pins
-
-Source updates are intentional maintenance work. Update the URL/ref and hash,
-run `scripts/fetch-sources.sh`, rebase the minimal patch queue, build the RPMs,
-run the automated tests, and attach real-device evidence. Never change a hash
-merely to make an unexpected download pass.
+Update URLs, immutable revisions, SHA-256 values, licenses, purposes, and
+upstream status together. Rebase the minimal kernel queue and remove changes
+already present in Fedora or upstream. Never replace a checksum merely to make
+an unexpected download succeed.

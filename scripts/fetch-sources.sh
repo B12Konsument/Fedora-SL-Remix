@@ -5,9 +5,6 @@ set -Eeuo pipefail
 PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$PROJECT_ROOT/scripts/lib.sh"
 
-include_proprietary=0
-[[ ${1:-} == --include-proprietary ]] && include_proprietary=1
-
 require_command git
 require_command jq
 require_command sha256sum
@@ -19,7 +16,7 @@ while IFS= read -r source_json; do
     kind="$(jq -r .kind <<<"$source_json")"
     redistributable="$(jq -r .redistributable <<<"$source_json")"
 
-    if [[ "$kind" == http && "$redistributable" == false && $include_proprietary -eq 0 ]]; then
+    if [[ "$kind" == http && "$redistributable" == false ]]; then
         log "Skipping non-redistributable source $id"
         continue
     fi

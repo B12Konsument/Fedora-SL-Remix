@@ -1,9 +1,0 @@
-[Desktop Entry]
-Type=Application
-Name=Surface Laptop 7 Firmware
-Comment=Install device firmware from an official Microsoft package
-Exec=sl7-firmware-assistant
-Icon=preferences-system
-Categories=System;Settings;
-Terminal=false
-

@@ -22,10 +22,11 @@ body:
     attributes:
       label: Installation path
       options:
-        - install.sh on official Fedora
-        - Public remix ISO
-        - Private firmware ISO
-        - Build pipeline
+        - Windows ISO personalizer
+        - Personalized live ISO
+        - Anaconda installation
+        - Installed system
+        - Maintainer base build
     validations:
       required: true
   - type: textarea
@@ -39,4 +40,3 @@ body:
     attributes:
       label: Sanitized logs
       render: shell
-

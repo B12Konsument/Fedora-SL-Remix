@@ -1,0 +1,73 @@
+#!/usr/bin/env bash
+# SPDX-License-Identifier: GPL-2.0-only
+
+set -Eeuo pipefail
+
+target=${1:-/}
+source_root=${2:-/run/sl7-personalization}
+manifest="$source_root/manifest.json"
+firmware="$source_root/firmware"
+chroot_command=${SL7_CHROOT_COMMAND:-chroot}
+
+die() {
+    printf 'sl7-personalization: error: %s\n' "$*" >&2
+    exit 1
+}
+
+[[ $target == /* && -d $target ]] || die "invalid target root: $target"
+[[ -r $manifest ]] || die 'the personalized firmware manifest is missing'
+[[ -d $firmware ]] || die 'the personalized firmware tree is missing'
+
+jq -e '
+  def required_files: [
+    "qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn",
+    "qcom/x1e80100/microsoft/Romulus/adsp_dtbs.elf",
+    "qcom/x1e80100/microsoft/Romulus/adspr.jsn",
+    "qcom/x1e80100/microsoft/Romulus/adsps.jsn",
+    "qcom/x1e80100/microsoft/Romulus/adspua.jsn",
+    "qcom/x1e80100/microsoft/Romulus/battmgr.jsn",
+    "qcom/x1e80100/microsoft/Romulus/cdsp_dtbs.elf",
+    "qcom/x1e80100/microsoft/Romulus/cdspr.jsn",
+    "qcom/x1e80100/microsoft/Romulus/qcadsp8380.mbn",
+    "qcom/x1e80100/microsoft/Romulus/qccdsp8380.mbn"
+  ];
+  .schema == 1 and
+  (.model | IN("Romulus13", "Romulus15")) and
+  (.sku | IN("Surface_Laptop_7th_Edition_2036", "Surface_Laptop_7th_Edition_2037")) and
+  (.files | length == 10) and
+  ([.files[].path] | sort == (required_files | sort)) and
+  all(.files[];
+    (.path | type == "string" and startswith("qcom/x1e80100/microsoft/")) and
+    (.sha256 | test("^[0-9a-f]{64}$")))
+' "$manifest" >/dev/null || die 'the personalized firmware manifest is invalid'
+
+while IFS=$'\t' read -r relative expected; do
+    [[ $relative != /* && $relative != *..* ]] || die "unsafe firmware path in manifest: $relative"
+    input="$firmware/$relative"
+    [[ -s $input ]] || die "required personalized firmware is missing: $relative"
+    actual="$(sha256sum "$input" | cut -d' ' -f1)"
+    [[ $actual == "$expected" ]] || die "firmware checksum mismatch: $relative"
+    install -Dm0644 "$input" "$target/usr/lib/firmware/updates/$relative"
+done < <(jq -r '.files[] | [.path,.sha256] | @tsv' "$manifest")
+
+install -Dm0644 "$manifest" "$target/usr/share/fedora-sl7-remix/device.json"
+
+if [[ $target == / ]]; then
+    restorecon -RF /usr/lib/firmware/updates/qcom/x1e80100/microsoft \
+        /usr/share/fedora-sl7-remix/device.json >/dev/null || \
+        die 'could not restore SELinux labels for personalized firmware'
+else
+    if [[ ${SL7_SKIP_TARGET_FINALIZE:-0} != 1 ]]; then
+        "$chroot_command" "$target" restorecon -RF /usr/lib/firmware/updates/qcom/x1e80100/microsoft \
+            /usr/share/fedora-sl7-remix/device.json >/dev/null || \
+            die 'could not restore target SELinux labels for personalized firmware'
+        sl7_kernel="$(find "$target/boot" -maxdepth 1 -type f -name 'vmlinuz-*.sl7.*' -print -quit)"
+        [[ -n $sl7_kernel ]] || die 'the installed target has no Fedora SL7 kernel'
+        "$chroot_command" "$target" dracut --regenerate-all --force
+        "$chroot_command" "$target" /usr/libexec/sl7-set-default-kernel
+        default_kernel="$("$chroot_command" "$target" grubby --default-kernel)"
+        [[ $default_kernel == *'.sl7.'* ]] || die 'the Fedora SL7 kernel is not the target default'
+    fi
+fi
+
+printf 'Personalized Surface firmware installed successfully.\n'

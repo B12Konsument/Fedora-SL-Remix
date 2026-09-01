@@ -2,42 +2,47 @@
 
 ## Automated checks
 
-Run static validation from the repository root:
+Run from the repository root:
 
 ```bash
-./scripts/validate.sh
+./tests/run.sh
 ```
 
-CI checks source-lock structure, duplicate IDs, hashes, kernel-series metadata,
-shell syntax, ShellCheck, XML, RPM spec parsing, and English-only user-facing
-text. Full release CI additionally builds every RPM and the ISO, opens the live
-root, verifies AArch64 EFI boot, checks both Romulus DTBs, and scans for
-prohibited firmware.
+Static checks cover source locks, patch metadata, shell syntax, ShellCheck,
+KIWI XML, RPM specs, the fixed personalization interface, English-only text,
+firmware-manifest validation, release splitting, and Anaconda target copying.
 
-Release CI boots the image with AArch64 QEMU and waits for a systemd marker
-from the live userspace. Run the same test with
-`scripts/qemu-smoke.sh /path/to/image.iso`. QEMU is a boot smoke test only. It
-cannot validate an SL7 touchpad, radio, battery controller, suspend path,
-camera, DTB selection on Microsoft UEFI, or firmware compatibility.
+Windows CI runs Pester against SKU mapping, unsupported hardware, fixed-size
+selectors, `newc` archive contents, placeholder hashes, overflow rejection,
+signature decisions, PnPUtil XML filtering, and firmware completeness. Linux
+`cpio` also extracts a PowerShell-generated archive. All test firmware is
+synthetic.
 
-## Physical-device checklist
+Release CI additionally builds the full AArch64 base and verifies EFI boot
+files, both DTBs and identifiers, patched and fallback kernels, contiguous slot
+extents, the fail-closed GRUB entry, Anaconda persistence integration, and the
+absence of Microsoft firmware.
 
-Record the exact release/commit, SKU, CPU, RAM, firmware source, UEFI version,
-and kernel. Then test:
+The QEMU test is only a userspace boot smoke test. It cannot validate Surface
+UEFI, GPU firmware, input devices, radio, battery, USB resume, camera, or
+suspend.
 
-1. Automatic DTB selection and live boot.
-2. Anaconda installation beside Windows and reboot.
-3. NVMe stability and fallback-kernel boot entry.
-4. Keyboard and touchpad, including physical/haptic click.
-5. GPU acceleration, brightness control, and both USB-C display paths.
-6. Wi-Fi and Bluetooth addresses across three cold boots.
-7. Speakers, microphones, headset, and suspend/resume audio.
-8. Battery percentage, charging, and AC transitions.
-9. USB-A, both USB-C ports, hot plug, and post-resume operation.
-10. Ten suspend/resume cycles with touchpad and networking checks.
-11. Camera enumeration and capture.
-12. A Fedora update followed by confirmation that the SL7 kernel remains the
-    default and the Fedora fallback still boots.
+## Physical checklist
 
-Use `hardware-tests/template.json` and attach relevant journal excerpts. Remove
-serial numbers, MAC addresses, BitLocker identifiers, and other personal data.
+On the target Surface, record the release, SKU, CPU, RAM, UEFI version, Windows
+firmware source, personalized ISO hash, and kernel. Remove personal identifiers.
+
+1. Run the Windows creator and confirm the detected SKU/model and private output.
+2. Write the ISO and reach the graphical KDE live desktop.
+3. Confirm the expected Romulus DTB.
+4. Install interactively, reboot without USB, and verify firmware persistence.
+5. Verify the `.sl7` kernel default and Fedora fallback entry.
+6. Test NVMe, keyboard, touchpad, haptics, GPU, brightness, Wi-Fi, Bluetooth,
+   audio, battery, USB-A, both USB-C ports, and external displays.
+7. Run ten suspend/resume cycles with input, networking, audio, and USB checks.
+8. Test camera enumeration and capture.
+9. Apply Fedora updates and recheck default/fallback kernels and firmware.
+
+Submit `hardware-tests/template.json` with sanitized logs. The 15-inch release
+remains experimental until this checklist passes; the 13.8-inch model requires
+accepted community evidence.

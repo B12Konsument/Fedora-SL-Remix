@@ -1,74 +1,60 @@
 # Firmware and Windows
 
-## Is Windows required?
+## Is Windows required after installation?
 
-Windows is not required for normal Linux operation after the device-specific
-firmware has been copied into `/usr/lib/firmware/updates`. Linux loads those
-files directly during boot. Wi-Fi/Bluetooth factory addresses are read from a
-Surface UEFI variable and also do not require Windows.
+No. Linux loads the copied device firmware directly after personalization and
+installation. Windows is not part of the normal Linux driver stack.
 
-Keeping Windows is nevertheless strongly recommended because:
+Keeping Windows is nevertheless strongly recommended while support remains
+experimental. It provides the preferred local firmware source, Surface UEFI
+and embedded-controller updates, recovery, and a known-good environment for
+hardware comparisons.
 
-- Microsoft does not grant this project permission to redistribute the
-  device-specific Qualcomm firmware.
-- A retained Windows installation is a convenient local source for those
-  files.
-- Surface UEFI, embedded-controller, and other platform firmware updates are
-  distributed through Microsoft's Windows update mechanisms. Linux update
-  coverage must not be assumed to be equivalent.
-- Current community testing reports that a touchpad left in a bad state after
-  suspend can sometimes be recovered most reliably by booting Windows once.
-  This is a temporary practical dependency, not part of the normal Linux
-  driver or firmware-loading path.
-- Windows and its recovery environment remain useful while Linux support is
-  experimental.
+## Windows ISO creation
 
-After extraction, Windows may technically be removed, but future platform
-updates then require a temporary Windows installation or another supported
-Microsoft update method. Deleting Windows is outside this project's installer.
-
-## Supported sources
-
-The preferred order is:
-
-1. An existing, mounted Windows system volume.
-2. A local copy of the exact official MSI pinned in `sources.lock.json`.
-3. An explicit verified download of that MSI.
-
-Commands:
-
-```bash
-sudo sl7-firmware install --windows-root /run/media/user/Windows
-sudo sl7-firmware install --msi /path/to/SurfaceLaptop7_ARM_Win11.msi
-sudo sl7-firmware install --download
-sudo sl7-firmware status
-```
-
-The installer mounts plain NTFS volumes read-only. For a BitLocker volume it
-uses `dislocker` in read-only mode and may interactively request the owner's
-password or recovery material. If automatic unlocking is not possible, unlock
-and mount Windows yourself and pass its mount point with `--windows-root`.
-
-## Installed files
-
-The GPU firmware is installed at:
+The personalizer inventories active Windows driver packages using PnPUtil XML
+and accepts their files only when catalog validation and the Microsoft signer
+check succeed. It also checks the catalog-signed System32 location used by the
+display firmware. It requires:
 
 ```text
 qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn
+qcom/x1e80100/microsoft/Romulus/adsp_dtbs.elf
+qcom/x1e80100/microsoft/Romulus/adspr.jsn
+qcom/x1e80100/microsoft/Romulus/adsps.jsn
+qcom/x1e80100/microsoft/Romulus/adspua.jsn
+qcom/x1e80100/microsoft/Romulus/battmgr.jsn
+qcom/x1e80100/microsoft/Romulus/cdsp_dtbs.elf
+qcom/x1e80100/microsoft/Romulus/cdspr.jsn
+qcom/x1e80100/microsoft/Romulus/qcadsp8380.mbn
+qcom/x1e80100/microsoft/Romulus/qccdsp8380.mbn
 ```
 
-ADSP/CDSP firmware, device trees, and JSON configuration are installed below:
+If the local set is incomplete, the tool offers the official Microsoft MSI
+locked in `sources.lock.json`. It verifies the complete MSI before native
+administrative extraction. It never downloads individual firmware from an
+unofficial mirror.
 
-```text
-qcom/x1e80100/microsoft/Romulus/
+The GPU file is supplied during early boot. The remaining files are validated
+and applied to the live environment, then explicitly persisted by Anaconda.
+
+## Installed-system recovery
+
+The installed `sl7-firmware` command remains available for explicit recovery
+or future firmware refreshes:
+
+```bash
+sudo sl7-firmware status
+sudo sl7-firmware install --msi /path/to/SurfaceLaptop7_ARM_Win11.msi
+sudo sl7-firmware install --download
 ```
 
-The extraction fails if any required filename is absent. It never substitutes
-firmware from another Surface generation.
+Normal installation from a valid personalized ISO does not require rerunning
+these commands.
 
-## Redistribution
+## Legal boundary
 
 Microsoft firmware and driver packages remain subject to Microsoft's terms.
-The private extraction mode exists for the device owner's personal installation;
-it does not provide a redistribution license. Do not upload extracted files,
-private ISOs, or private package bundles to GitHub releases or mirrors.
+The private workflow does not grant redistribution rights. Never publish the
+private ISO, extracted binaries, an MSI, or a firmware archive. Public project
+releases contain placeholders only.

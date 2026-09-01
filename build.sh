@@ -7,8 +7,6 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")" && pwd -P)"
 readonly PROJECT_ROOT
 readonly IMAGE_NAME="fedora-sl7-remix-builder"
 
-firmware_mode=redistributable
-firmware_source=
 output_dir="$PROJECT_ROOT/out"
 clean=0
 resume=0
@@ -25,15 +23,13 @@ Usage: sudo ./build.sh [OPTIONS]
 Build the Fedora SL7 Remix AArch64 ISO.
 
 Options:
-  --with-microsoft-firmware  Download, verify, and embed the pinned Microsoft MSI firmware.
-  --firmware-source PATH     Verify and extract firmware from a local copy of the pinned MSI.
   --output DIR               Write final artifacts to DIR (default: ./out).
   --clean                    Remove the project's build cache before building.
   --resume                   Continue at ISO creation after a failed KIWI stage.
   -h, --help                 Show this help.
 
-The default image is redistribution-safe. Images containing Microsoft firmware
-are for personal use and must not be redistributed.
+The result is a redistribution-safe personalization base. End users personalize
+it with the Windows tool; this maintainer command never embeds Microsoft firmware.
 EOF
 }
 
@@ -44,19 +40,6 @@ die() {
 
 while (($#)); do
     case "$1" in
-        --with-microsoft-firmware)
-            [[ -z "$firmware_source" ]] || die '--with-microsoft-firmware and --firmware-source are mutually exclusive'
-            firmware_mode=download
-            shift
-            ;;
-        --firmware-source)
-            (($# >= 2)) || die '--firmware-source requires a path'
-            [[ "$firmware_mode" == redistributable ]] || die '--with-microsoft-firmware and --firmware-source are mutually exclusive'
-            firmware_mode=local
-            firmware_source="$(realpath -- "$2")"
-            [[ -f "$firmware_source" ]] || die "firmware source does not exist: $firmware_source"
-            shift 2
-            ;;
         --output)
             (($# >= 2)) || die '--output requires a directory'
             output_dir="$(realpath -m -- "$2")"
@@ -80,9 +63,6 @@ done
 
 ((clean == 0 || resume == 0)) || die '--clean and --resume cannot be used together'
 
-if [[ "$firmware_mode" != redistributable && ! -v MIN_FREE_GIB ]]; then
-    min_free_gib=30
-fi
 [[ "$min_free_gib" =~ ^[1-9][0-9]*$ ]] || die 'MIN_FREE_GIB must be a positive integer'
 
 [[ "$(uname -s)" == Linux ]] || die 'the builder requires Linux; use a Fedora AArch64 virtual machine'
@@ -133,7 +113,6 @@ podman build "${platform_args[@]}" --tag "$IMAGE_NAME" --file "$PROJECT_ROOT/bui
 container_args=(
     run --rm --privileged --security-opt label=disable
     "${platform_args[@]}"
-    --env "FIRMWARE_MODE=$firmware_mode"
     --env "BUILD_VERSION=$(<"$PROJECT_ROOT/VERSION")"
     --volume "$PROJECT_ROOT:/workspace"
     --volume "$output_dir:/output"
@@ -141,11 +120,6 @@ container_args=(
 
 if ((resume)); then
     container_args+=(--env BUILD_PHASE=iso)
-fi
-
-if [[ -n "$firmware_source" ]]; then
-    container_args+=(--env FIRMWARE_SOURCE=/run/firmware/SurfaceLaptop7.msi)
-    container_args+=(--volume "$firmware_source:/run/firmware/SurfaceLaptop7.msi:ro")
 fi
 
 podman "${container_args[@]}" "$IMAGE_NAME"

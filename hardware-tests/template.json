@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "result": "draft",
-  "project_version": "0.1.0",
+  "project_version": "0.2.0",
   "git_commit": "REPLACE_WITH_COMMIT",
   "tester": "REPLACE_WITH_GITHUB_HANDLE",
   "device": {
@@ -12,9 +12,10 @@
     "uefi_version": "REPLACE"
   },
   "kernel": "REPLACE_WITH_UNAME_R",
-  "firmware_source": "windows-partition",
+  "firmware_source": "WindowsDriverStore",
   "checks": {
-    "automatic_dtb": "untested",
+    "windows_personalizer": "untested",
+    "fixed_dtb": "untested",
     "live_boot": "untested",
     "install_and_reboot": "untested",
     "nvme": "untested",
@@ -38,4 +39,3 @@
   },
   "notes": "Remove all personal identifiers before submission."
 }
-

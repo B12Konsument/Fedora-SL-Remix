@@ -16,8 +16,9 @@ Before submitting a change:
    the pinned Fedora source and remove it once equivalent code lands.
 5. Use `hardware-tests/template.json` for physical-device results. Do not turn
    an untested status into a verified status without the complete checklist.
-6. Explain whether a change affects the installer path, optional ISO path, or
-   both. Shared behavior belongs in an RPM, not in two separate scripts.
+6. Explain whether a change affects the Linux base build, the fixed ISO
+   personalization format, Windows extraction, live boot, or installed-system
+   persistence. Format changes require matching Linux and Pester tests.
 
 Do not rebase a failed source hash or patch automatically. An unexpected change
 is a supply-chain event that requires inspection.

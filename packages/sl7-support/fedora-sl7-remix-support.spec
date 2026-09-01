@@ -1,7 +1,7 @@
 Name:           fedora-sl7-remix-support
-Version:        0.1.0
+Version:        0.2.0
 Release:        1%{?dist}
-Summary:        Hardware integration and firmware assistant for Surface Laptop 7
+Summary:        Hardware and personalized-firmware integration for Surface Laptop 7
 License:        GPL-2.0-only AND CC-BY-SA-4.0
 URL:            https://github.com/B12Konsument/Fedora-SL-Remix
 Source0:        %{name}-%{version}.tar.gz
@@ -14,9 +14,7 @@ Requires:       findutils
 Requires:       grubby
 Requires:       jq
 Requires:       msitools
-# Require the audited Remix build, not Fedora's package with another version
-# sequence under the same name.
-Requires:       qcom-firmware-extract = 1:2-2.fc44
+Requires:       policycoreutils
 Requires:       systemd
 # Keep an unmodified, bootable Fedora UKI beside the patched installonly kernel.
 Requires:       kernel-modules = 7.1.10-200.fc44
@@ -26,8 +24,8 @@ BuildRequires:  systemd-rpm-macros
 %{?systemd_requires}
 
 %description
-Hardware detection, proprietary firmware extraction, kernel-default policy,
-touchpad calibration, and user-facing integration for Fedora SL7 Remix.
+Hardware detection, personalized firmware handoff, kernel-default policy,
+touchpad calibration, and installation integration for Fedora SL7 Remix.
 
 %prep
 %autosetup
@@ -40,13 +38,13 @@ install -Dm0644 sources.lock.json %{buildroot}%{_datadir}/fedora-sl7-remix/sourc
 install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 
 %post
-%systemd_post sl7-kernel-default.service sl7-qemu-smoke-marker.service
+%systemd_post sl7-kernel-default.service sl7-personalize-live.service sl7-qemu-smoke-marker.service
 
 %preun
-%systemd_preun sl7-kernel-default.service sl7-qemu-smoke-marker.service
+%systemd_preun sl7-kernel-default.service sl7-personalize-live.service sl7-qemu-smoke-marker.service
 
 %postun
-%systemd_postun_with_restart sl7-kernel-default.service sl7-qemu-smoke-marker.service
+%systemd_postun_with_restart sl7-kernel-default.service sl7-personalize-live.service sl7-qemu-smoke-marker.service
 
 %transfiletriggerin -- /boot
 %{_libexecdir}/sl7-set-default-kernel || :
@@ -58,17 +56,19 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 %license LICENSE LICENSES.md
 %{_bindir}/sl7-detect
 %{_bindir}/sl7-firmware
-%{_bindir}/sl7-firmware-assistant
 %{_libexecdir}/sl7-set-default-kernel
+%{_libexecdir}/sl7-apply-personalization
 %{_unitdir}/sl7-kernel-default.service
+%{_unitdir}/sl7-personalize-live.service
 %{_unitdir}/sl7-qemu-smoke-marker.service
+%{_prefix}/lib/dracut/modules.d/95sl7-personalization/
+%{_datadir}/anaconda/post-scripts/95-sl7-personalization.ks
 %{_prefix}/lib/systemd/system-preset/80-fedora-sl7-remix.preset
-%{_datadir}/applications/fedora-sl7-firmware.desktop
 %{_datadir}/fedora-sl7-remix/
 %config(noreplace) %{_sysconfdir}/dracut.conf.d/80-fedora-sl7-remix.conf
 %config(noreplace) %{_sysconfdir}/issue.d/90-fedora-sl7-remix.issue
 %config(noreplace) %{_sysconfdir}/iptsd.d/91-calibration-045E-0C77.conf
 
 %changelog
-* Wed Aug 26 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.1.0-1
-- Initial hardware integration package
+* Sun Aug 30 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.0-1
+- Add Windows-personalized firmware handoff for live and installed systems

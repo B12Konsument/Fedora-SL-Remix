@@ -1,3 +1,4 @@
 enable sl7-kernel-default.service
+enable sl7-personalize-live.service
 enable sl7-qemu-smoke-marker.service
 enable sl7-wifi-mac.service

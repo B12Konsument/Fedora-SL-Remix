@@ -15,9 +15,23 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install validation tools
-        run: sudo apt-get update && sudo apt-get install -y jq libxml2-utils ripgrep shellcheck
+        run: sudo apt-get update && sudo apt-get install -y cpio jq libxml2-utils ripgrep shellcheck zip
       - name: Validate repository inputs
+        env:
+          REQUIRE_PWSH: "1"
         run: ./tests/run.sh
+  windows-personalizer:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Install Pester
+        shell: powershell
+        run: Install-Module Pester -Force -Scope CurrentUser -RequiredVersion 5.7.1
+      - name: Test the native Windows personalizer
+        shell: powershell
+        run: Invoke-Pester -Path tests/windows -CI
   build-packages-and-prepare-kernel:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 90

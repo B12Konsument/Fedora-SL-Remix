@@ -6,18 +6,13 @@ PROJECT_ROOT=/workspace
 source "$PROJECT_ROOT/scripts/lib.sh"
 
 [[ "$(uname -m)" == aarch64 ]] || die 'the build container is not running as AArch64'
-[[ ${FIRMWARE_MODE:-redistributable} =~ ^(redistributable|download|local)$ ]] || die 'invalid FIRMWARE_MODE'
 [[ ${BUILD_PHASE:-all} =~ ^(all|iso)$ ]] || die 'invalid BUILD_PHASE'
 
 "$PROJECT_ROOT/scripts/validate.sh"
 
 case ${BUILD_PHASE:-all} in
     all)
-        if [[ ${FIRMWARE_MODE:-redistributable} == download ]]; then
-            "$PROJECT_ROOT/scripts/fetch-sources.sh" --include-proprietary
-        else
-            "$PROJECT_ROOT/scripts/fetch-sources.sh"
-        fi
+        "$PROJECT_ROOT/scripts/fetch-sources.sh"
 
         # The project directory is bind-mounted into a rootless Podman container.  A
         # source checkout can consequently have an unmapped numeric owner.  Register
@@ -41,7 +36,6 @@ case ${BUILD_PHASE:-all} in
             'fedora-sl7-remix-support-*.rpm' \
             'iptsd-sl7-*.rpm' \
             'sl7-mac-*.rpm' \
-            'qcom-firmware-extract-*.rpm' \
             'kernel-*.sl7.*.aarch64.rpm'; do
             compgen -G "$BUILD_ROOT/repo/$rpm_pattern" >/dev/null || \
                 die "cannot resume: local RPM repository lacks $rpm_pattern"
@@ -50,9 +44,9 @@ case ${BUILD_PHASE:-all} in
         ;;
 esac
 
-final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.1.0}.aarch64.iso"
+final_iso="$BUILD_ROOT/Fedora-SL7-Remix-44-${BUILD_VERSION:-0.2.0}-base.aarch64.iso"
 reuse_iso=0
-if [[ ${BUILD_PHASE:-all} == iso && ${FIRMWARE_MODE:-redistributable} == redistributable && -s "$final_iso" ]]; then
+if [[ ${BUILD_PHASE:-all} == iso && -s "$final_iso" ]]; then
     reuse_iso=1
     log "Reusing the completed ISO checkpoint: $final_iso"
 fi
@@ -60,25 +54,6 @@ fi
 if ((reuse_iso == 0)); then
     "$PROJECT_ROOT/scripts/prepare-kiwi.sh"
     bash "$PROJECT_ROOT/scripts/patch-kiwi-efi-sync.sh"
-
-    case ${FIRMWARE_MODE:-redistributable} in
-        download)
-            msi="$BUILD_ROOT/downloads/$(jq -r '.sources[] | select(.id == "surface-laptop-7-msi") | .filename' "$SOURCE_LOCK")"
-            ;;
-        local)
-            msi=${FIRMWARE_SOURCE:?FIRMWARE_SOURCE is required for local mode}
-            ;;
-        redistributable)
-            msi=
-            ;;
-    esac
-
-    if [[ -n "$msi" ]]; then
-        warn 'Building a private image with proprietary Microsoft firmware; do not redistribute it'
-        SL7_SOURCE_LOCK="$SOURCE_LOCK" \
-        SL7_FIRMWARE_ROOT="$BUILD_ROOT/kiwi/root/usr/lib/firmware/updates/qcom/x1e80100/microsoft" \
-            "$PROJECT_ROOT/image/root/usr/bin/sl7-firmware" install --msi "$msi"
-    fi
 
     kiwi_output="$BUILD_ROOT/kiwi-output"
     mkdir -p "$kiwi_output"
@@ -92,19 +67,17 @@ if ((reuse_iso == 0)); then
             --output-dir="$kiwi_output/result" \
             --image-type=iso \
             --image-profile=KDE-Desktop-Live \
-            --image-release="${BUILD_VERSION:-0.1.0}"
+            --image-release="${BUILD_VERSION:-0.2.0}"
     )
 
     iso="$(find "$kiwi_output" -type f -name '*.iso' -print -quit)"
     [[ -n "$iso" ]] || die 'KIWI completed without producing an ISO'
-    cp "$iso" "$final_iso"
+    "$PROJECT_ROOT/scripts/prepare-personalization-base.sh" "$iso" "$final_iso"
 fi
 
-if [[ ${FIRMWARE_MODE:-redistributable} == redistributable ]]; then
-    "$PROJECT_ROOT/scripts/inspect-iso.sh" "$final_iso" --public
-else
-    "$PROJECT_ROOT/scripts/inspect-iso.sh" "$final_iso" --private
-fi
+"$PROJECT_ROOT/scripts/inspect-iso.sh" "$final_iso" --base
+layout="$BUILD_ROOT/personalization-layout.json"
+"$PROJECT_ROOT/scripts/generate-personalization-layout.sh" "$final_iso" "$layout"
 
 artifact_stage="$BUILD_ROOT/artifacts"
 mkdir -p "$artifact_stage"
@@ -118,7 +91,7 @@ jq -n --slurpfile sources "$SOURCE_LOCK" --slurpfile kernel "$PROJECT_ROOT/kerne
   kernel_patches:[$kernel[0].patches[] | {id,license,upstream_status,url,path,sha256}]
 }' > "$artifact_stage/LICENSE-REPORT.json"
 "$PROJECT_ROOT/scripts/create-sbom.sh" "$BUILD_ROOT/repo" "$artifact_stage/Fedora-SL7-Remix.spdx.json"
-"$PROJECT_ROOT/scripts/package-release.sh" "$final_iso" "$artifact_stage"
+"$PROJECT_ROOT/scripts/package-release.sh" "$final_iso" "$layout" "$artifact_stage"
 cp -f -- "$artifact_stage"/* /output/
 
-log 'The ISO and all build manifests were created successfully'
+log 'The personalization-base ISO and all build manifests were created successfully'

@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "fedora_release": 44,
-  "generated": "2026-08-26",
+  "generated": "2026-08-31",
   "sources": [
     {
       "id": "fedora-44-container-aarch64",
@@ -45,6 +45,7 @@
       "kind": "http",
       "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-modules-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-modules-7.1.10-200.fc44.aarch64.rpm",
+      "version": "7.1.10-200.fc44",
       "sha256": "39b3520fc253046be58d8874731b8ca163502f204e44d9a19bc4535e7edc1f49",
       "signature_fingerprint": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
       "license": "LicenseRef-Fedora-Kernel-RPM-Mixed",
@@ -58,6 +59,7 @@
       "kind": "http",
       "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-modules-core-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-modules-core-7.1.10-200.fc44.aarch64.rpm",
+      "version": "7.1.10-200.fc44",
       "sha256": "862006c962f829ec8321292cd7e990588d26e79e6cd0d93e7bbff13a2f257504",
       "signature_fingerprint": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
       "license": "LicenseRef-Fedora-Kernel-RPM-Mixed",
@@ -71,6 +73,7 @@
       "kind": "http",
       "url": "https://dl.fedoraproject.org/pub/fedora/linux/updates/44/Everything/aarch64/Packages/k/kernel-uki-dtbloader-7.1.10-200.fc44.aarch64.rpm",
       "filename": "kernel-uki-dtbloader-7.1.10-200.fc44.aarch64.rpm",
+      "version": "7.1.10-200.fc44",
       "sha256": "8cc53ec5d74b74b9b0a0232ca01c32ec0713d88db5c434f6c767c7f8d2afc6e0",
       "signature_fingerprint": "36f612dcf27f7d1a48a835e4dbfcf71c6d9f90a6",
       "license": "LicenseRef-Fedora-Kernel-RPM-Mixed",
@@ -102,17 +105,6 @@
       "purpose": "Restore factory Wi-Fi and Bluetooth MAC addresses"
     },
     {
-      "id": "qcom-firmware-extract",
-      "kind": "git",
-      "url": "https://github.com/Radiicall/qcom-firmware-extract.git",
-      "ref": "bb6cc4db68a532826916d71dacbd6606ef45ecaa",
-      "archive_sha256": "1b369432ae96ec644fa5a94608d340553b40bf38392501a0916c36072a382bf3",
-      "license": "GPL-2.0-or-later",
-      "upstream_status": "surface-laptop-7-downstream-project",
-      "redistributable": true,
-      "purpose": "Firmware extraction from an existing Windows installation"
-    },
-    {
       "id": "surface-laptop-7-notes",
       "kind": "git",
       "url": "https://github.com/bryce-hoehn/linux-surface-laptop-7.git",
@@ -128,6 +120,8 @@
       "kind": "http",
       "url": "https://download.microsoft.com/download/b7ca2c3f-d320-4795-be0f-529a0117abb4/SurfaceLaptop7_ARM_Win11_26100_26.053.36539.0.msi",
       "filename": "SurfaceLaptop7_ARM_Win11_26100_26.053.36539.0.msi",
+      "version": "26.053.36539.0",
+      "size": 523874304,
       "sha256": "66b6e1ace7e5f01bc592cd4c9ae78aa30bbb0e04ab57491cd03ec2aaa6e1229b",
       "license": "LicenseRef-Microsoft-Surface-Firmware",
       "upstream_status": "official-microsoft-device-package",

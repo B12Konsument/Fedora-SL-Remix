@@ -27,7 +27,7 @@ jobs:
         with:
           ref: ${{ inputs.tag || github.ref }}
       - name: Install the container runtime
-        run: sudo apt-get update && sudo apt-get install -y jq podman
+        run: sudo apt-get update && sudo apt-get install -y jq podman zip
       - name: Reclaim runner workspace
         run: |
           sudo find /usr/local/lib/android -depth -delete 2>/dev/null || true
@@ -36,24 +36,26 @@ jobs:
       - name: Build redistribution-safe artifacts
         env:
           MIN_FREE_GIB: "55"
-        run: sudo --preserve-env=MIN_FREE_GIB ./build.sh --output "$GITHUB_WORKSPACE/artifacts"
+        run: |
+          sudo --preserve-env=MIN_FREE_GIB ./build.sh --output "$GITHUB_WORKSPACE/artifacts"
+          sudo chown -R "$(id -u):$(id -g)" "$GITHUB_WORKSPACE/artifacts"
       - name: Smoke-test the AArch64 live environment in QEMU
         run: |
           iso=$(find artifacts -maxdepth 1 -name '*.iso' -print -quit)
+          ./scripts/personalize-test-iso.sh "$iso" artifacts/personalization-layout.json artifacts/qemu-smoke.iso
           sudo podman run --rm --security-opt label=disable \
             --entrypoint /workspace/scripts/qemu-smoke.sh \
             --volume "$GITHUB_WORKSPACE:/workspace" \
             localhost/fedora-sl7-remix-builder:latest \
-            "$iso" 300
+            /workspace/artifacts/qemu-smoke.iso 300
+          sudo find artifacts/qemu-smoke.iso -delete
       - name: Prepare GitHub-sized assets
         run: |
           mkdir release-assets
           iso=$(find artifacts -maxdepth 1 -name '*.iso' -print -quit)
-          ./scripts/split-release.sh "$iso" release-assets
-          cp artifacts/Fedora-SL7-Remix-packages-*.tar.zst release-assets/
+          ./scripts/split-release.sh "$iso" release-assets artifacts/personalization-layout.json
           cp artifacts/{RPM-MANIFEST.txt,SOURCE-MANIFEST.json,LICENSE-REPORT.json,Fedora-SL7-Remix.spdx.json} release-assets/
-          cp artifacts/SHA256SUMS release-assets/SHA256SUMS
-          (cd release-assets && sha256sum *.part-* >> SHA256SUMS 2>/dev/null || true)
+          (cd release-assets && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
       - name: Publish experimental release
         env:
           GH_TOKEN: ${{ github.token }}
@@ -64,4 +66,4 @@ jobs:
             --prerelease \
             --verify-tag \
             --title "Fedora SL7 Remix $RELEASE_TAG (experimental)" \
-            --notes "Experimental AArch64 release. Secure Boot must be disabled. Microsoft firmware is not included. The touchscreen is known broken; consult the hardware matrix before installation."
+            --notes "Experimental personalization base for the Windows ISO creator. Do not boot the base image directly. Secure Boot must be disabled. Microsoft firmware is not distributed by this release. The touchscreen is known broken."

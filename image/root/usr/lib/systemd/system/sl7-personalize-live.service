@@ -1,0 +1,14 @@
+[Unit]
+Description=Apply private Surface Laptop 7 firmware personalization
+Documentation=https://github.com/B12Konsument/Fedora-SL-Remix
+ConditionPathExists=/run/sl7-personalization/manifest.json
+After=local-fs.target
+Before=NetworkManager.service display-manager.service
+
+[Service]
+Type=oneshot
+ExecStart=/usr/libexec/sl7-apply-personalization / /run/sl7-personalization
+RemainAfterExit=yes
+
+[Install]
+WantedBy=multi-user.target

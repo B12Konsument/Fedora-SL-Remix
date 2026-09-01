@@ -12,9 +12,9 @@ printf 'Microsoft Surface Laptop' > "$fixture/sys/class/dmi/id/product_name"
 result="$(SL7_SYS_ROOT="$fixture" "$root/image/root/usr/bin/sl7-detect" --json)"
 jq -e '.supported == true and .model == "romulus13" and .display_inches == "13.8"' <<<"$result" >/dev/null
 
-printf 'Surface_Laptop_7th_Edition_For_Business_2037' > "$fixture/sys/class/dmi/id/product_sku"
+printf 'Surface_Laptop_7th_Edition_2038_Intel' > "$fixture/sys/class/dmi/id/product_sku"
 if SL7_SYS_ROOT="$fixture" "$root/image/root/usr/bin/sl7-detect" >/dev/null; then
-    printf 'the Intel/x86_64 business SKU was incorrectly accepted\n' >&2
+    printf 'an Intel/x86_64 SKU was incorrectly accepted\n' >&2
     exit 1
 fi
 

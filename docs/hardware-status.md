@@ -1,45 +1,44 @@
 # Hardware status
 
-Status terms are deliberately strict:
+Status terms:
 
-- `CI-tested`: verified structurally or in QEMU, not on Surface hardware.
-- `hardware-verified`: passed the repository checklist on the reference device.
+- `CI-tested`: structurally verified or boot-smoked in QEMU only.
+- `hardware-verified`: passed the complete checklist on the reference device.
 - `community-verified`: passed on hardware reported by another contributor.
-- `untested`: support exists but no accepted physical test is recorded.
-- `known broken`: a known implementation gap prevents normal use.
+- `untested`: implementation exists without accepted physical evidence.
+- `known broken`: a known gap prevents normal use.
 
 ## Device coverage
 
 | Model | Selector | Status |
 | --- | --- | --- |
-| 13.8-inch consumer, SKU 2036 | Romulus 13 DTB | untested |
-| 15-inch consumer, SKU 2037 | Romulus 15 DTB | hardware verification pending |
+| Surface Laptop 7 13.8-inch, SKU 2036 | Romulus 13 | untested |
+| Surface Laptop 7 15-inch, SKU 2037 | Romulus 15 | hardware verification pending |
 
-Surface Laptop 7 for Business systems with Intel/x86_64 processors are not
-covered by this AArch64 project, even where their product naming or chassis is
-similar.
-
-Snapdragon X Plus/X Elite, RAM size, and SSD capacity do not select a different
-DTB. Form factor and SKU do.
+Only Windows 11 ARM64 systems matching those SKU values are accepted.
+Intel/x86_64 models, Surface Pro devices, and other generations are outside
+scope. CPU bin, RAM size, and SSD capacity do not select a different DTB.
 
 ## Functional matrix
 
-| Function | Expected status | Notes |
+| Function | Status | Notes |
 | --- | --- | --- |
-| AArch64 UEFI boot and automatic DTB | untested | CI inspection exists; the first complete release build is pending |
-| NVMe and installation | untested | Must pass destructive-install checklist on real hardware |
-| Keyboard | untested | SPI-HID kernel support is included |
-| Touchpad and haptic click | untested | SPI-HID kernel queue, IPTSD fork, and calibration included |
-| Touchscreen | known broken | No working upstream SL7 touchscreen stack is available |
-| GPU and backlight | untested | Requires extracted Microsoft GPU firmware |
-| Wi-Fi | untested | ath12k Romulus enumeration and factory MAC provisioning included |
-| Bluetooth | untested | Requires firmware and factory address provisioning |
-| Audio | untested | Requires Qualcomm DSP firmware and Fedora ALSA UCM data |
-| USB-A / USB-C | untested | Resume reinitialization patch is included |
-| External display | untested | Test both USB-C ports and hot plug |
-| Battery reporting | untested | Duplicate battery workaround is already in the base kernel |
-| Suspend/resume | untested | Test repeated cycles with USB and touchpad |
-| Camera | untested | Camera DT/driver changes are included; extracted firmware may be required |
+| Windows detection and private ISO creation | CI-tested | Pester uses synthetic fixtures; physical Windows test pending |
+| AArch64 UEFI boot and fixed DTB | untested | Base layout and both DTBs are inspected in CI |
+| KDE live desktop | untested | Requires early private GPU firmware |
+| Anaconda installation and reboot | untested | Private firmware has an explicit post-install handoff |
+| NVMe | untested | Physical installation required |
+| Keyboard | untested | SPI-HID kernel support included |
+| Touchpad and haptics | untested | Patched kernel, IPTSD fork, and calibration included |
+| Touchscreen | known broken | No working SL7 stack is available |
+| GPU and backlight | untested | Requires `qcdxkmsuc8380.mbn` |
+| Wi-Fi and Bluetooth | untested | ath12k and factory-address integration included |
+| Audio | untested | Requires personalized Qualcomm DSP firmware |
+| Battery | untested | Physical verification pending |
+| USB-A / USB-C | untested | Resume reinitialization patch included |
+| External displays | untested | Test both USB-C ports and hot plug |
+| Suspend/resume | untested | Repeated-cycle testing required |
+| Camera | untested | Camera changes included; physical verification pending |
 
-This table must be updated only from a completed report in `hardware-tests/`.
-Marketing-style claims based on source availability alone are not accepted.
+Update this table only from a completed report in `hardware-tests/`. QEMU does
+not prove physical compatibility.

@@ -18,6 +18,7 @@ jq -e '
     (.id | type == "string" and length > 0) and
     (.kind | IN("git", "http", "oci")) and
     (.url | type == "string" and length > 0) and
+    (((.ref // "") | length > 0) or ((.version // "") | length > 0)) and
     (.license | type == "string" and length > 0) and
     (.upstream_status | type == "string" and length > 0) and
     (.purpose | type == "string" and length > 0) and
@@ -32,6 +33,20 @@ jq -e '
      end))
 ' "$SOURCE_LOCK" >/dev/null
 
+jq -e '
+  .schema == 1 and
+  (.source_msi_sha256 | test("^[0-9a-f]{64}$")) and
+  (.files | length == 10) and
+  ([.files[].name] | length == (unique | length)) and
+  all(.files[];
+    (.name | type == "string" and length > 0) and
+    (.size | type == "number" and . > 0) and
+    (.sha256 | test("^[0-9a-f]{64}$")))
+' "$PROJECT_ROOT/firmware/prohibited-content-hashes.json" >/dev/null
+[[ "$(jq -r '.source_msi_sha256' "$PROJECT_ROOT/firmware/prohibited-content-hashes.json")" == \
+   "$(jq -r '.sources[] | select(.id == "surface-laptop-7-msi") | .sha256' "$SOURCE_LOCK")" ]] || \
+    die 'the proprietary-content denylist does not match the locked Microsoft MSI'
+
 stock_kernel_evr="$(jq -er '.sources[] | select(.id == "fedora-kernel-distgit") | .version + "-" + .release' "$SOURCE_LOCK")"
 mapfile -t stock_kernel_rpms < <(jq -r '.sources[] | select(.role? == "stock-kernel-fallback") | .filename' "$SOURCE_LOCK" | sort)
 [[ ${#stock_kernel_rpms[@]} -eq 3 ]] || die 'the source lock must contain the three stock Fedora fallback-kernel RPMs'
@@ -43,13 +58,6 @@ for package in kernel-modules kernel-modules-core kernel-uki-dtbloader; do
         die "$package fallback requirement does not match the source lock"
 done
 
-grep -Fqx 'Epoch:          1' \
-    "$PROJECT_ROOT/packages/qcom-firmware-extract/qcom-firmware-extract.spec" || \
-    die 'the pinned qcom-firmware-extract build must supersede the Fedora version sequence'
-grep -Fqx 'Requires:       qcom-firmware-extract = 1:2-2.fc44' \
-    "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec" || \
-    die 'the support package must require the audited qcom-firmware-extract build'
-
 jq -e '
   .schema == 1 and
   (.patches | length > 0) and
@@ -57,6 +65,7 @@ jq -e '
   all(.patches[];
     (.id | length > 0) and
     (.license | type == "string" and length > 0) and
+    (.purpose | type == "string" and length > 0) and
     (.upstream_status | type == "string" and length > 0) and
     ((has("path") and (.path | length > 0)) or
      (has("url") and (.url | startswith("https://")) and (.sha256 | test("^[0-9a-f]{64}$")))))
@@ -69,18 +78,29 @@ jq -e '
   all(.checks[]; IN("CI-tested", "hardware-verified", "community-verified", "untested", "known-broken"))
 ' "$PROJECT_ROOT/hardware-tests/template.json" >/dev/null
 
-grep -q '^set default="0"$' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || die 'automatic hardware detection must be the default GRUB entry'
-grep -q 'name="kernel-uki-dtbloader"' "$PROJECT_ROOT/image/sl7.xml" || die 'the image must explicitly install kernel-uki-dtbloader'
-grep -Fq "[[ \${#install_rpms[@]} -eq 10 ]]" "$PROJECT_ROOT/install.sh" || \
-    die 'the existing-system installer must use the audited ten-RPM install set'
-if grep -Fq "dnf install -y \"\${rpms[@]}\"" "$PROJECT_ROOT/install.sh"; then
-    die 'the installer must not install every kernel build artifact from the bundle'
+grep -q '^set default="0"$' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || die 'the personalization guard must be the default GRUB entry'
+grep -Fq 'sl7_personalized="0"' "$PROJECT_ROOT/image/model-selector.placeholder.cfg" || \
+    die 'the base model selector must fail closed'
+grep -Fq 'Personalize this base image from Windows before booting' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || \
+    die 'GRUB must explain that the base image requires Windows personalization'
+if grep -Fq 'rd.live.check' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template"; then
+    die 'the mutable personalization ISO must not offer the embedded media check'
 fi
+grep -q 'name="kernel-uki-dtbloader"' "$PROJECT_ROOT/image/sl7.xml" || die 'the image must explicitly install kernel-uki-dtbloader'
+grep -Fq 'sl7-personalize-live.service' "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec" || \
+    die 'the support RPM must include live personalization integration'
+grep -Fq '/usr/libexec/sl7-apply-personalization /mnt/sysroot /run/sl7-personalization' \
+    "$PROJECT_ROOT/image/root/usr/share/anaconda/post-scripts/95-sl7-personalization.ks" || \
+    die 'Anaconda must persist private firmware explicitly'
+grep -Fq "ValidateSet('Auto', 'Windows', 'Msi')" "$PROJECT_ROOT/windows/New-FedoraSl7Iso.ps1" || \
+    die 'the stable Windows firmware-source interface is missing'
+grep -Fq "ValidateSet('Auto', 'Romulus13', 'Romulus15')" "$PROJECT_ROOT/windows/New-FedoraSl7Iso.ps1" || \
+    die 'the stable Windows model interface is missing'
 
 mapfile -t shell_files < <(
     find "$PROJECT_ROOT" \
         \( -path "$PROJECT_ROOT/.build" -o -path "$PROJECT_ROOT/.git" -o -path "$PROJECT_ROOT/out" \) -prune -o \
-        -type f \( -name '*.sh' -o -path "$PROJECT_ROOT/build.sh" -o -path "$PROJECT_ROOT/install.sh" \) -print | sort
+        -type f \( -name '*.sh' -o -path "$PROJECT_ROOT/build.sh" \) -print | sort
 )
 for file in "${shell_files[@]}"; do
     bash -n "$file"
@@ -103,7 +123,7 @@ trap 'rm -f -- "$language_report"' EXIT
 non_english_terms="$(printf '\\x75\\x6e\\x64|\\x6f\\x64\\x65\\x72|\\x6e\\x69\\x63\\x68\\x74|\\x68\\x65\\x72\\x75\\x6e\\x74\\x65\\x72\\x6c\\x61\\x64\\x65\\x6e|\\x66\\x65\\x68\\x6c\\x65\\x72|\\x61\\x63\\x68\\x74\\x75\\x6e\\x67')"
 if rg -n -i "\\b($non_english_terms)\\b" \
     "$PROJECT_ROOT" -g '!/.build/**' -g '!/.git/**' -g '!/out/**' \
-    -g '*.md' -g '*.sh' -g '*.desktop' -g '*.service' -g '*.yml' \
+    -g '*.md' -g '*.sh' -g '*.ps1' -g '*.psm1' -g '*.desktop' -g '*.service' -g '*.yml' \
     -g '*.json' -g '*.xml' -g '*.spec' \
     >"$language_report"; then
     cat "$language_report" >&2

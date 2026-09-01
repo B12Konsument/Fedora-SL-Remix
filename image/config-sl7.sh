@@ -2,7 +2,7 @@
 # shellcheck shell=bash
 
 echo 'Configuring Fedora SL7 Remix integration'
-systemctl enable sl7-kernel-default.service sl7-qemu-smoke-marker.service sl7-wifi-mac.service
+systemctl enable sl7-kernel-default.service sl7-personalize-live.service sl7-qemu-smoke-marker.service sl7-wifi-mac.service
 
 mkdir -p /boot/dtb/fedora-sl7-remix
 romulus13="$(find /usr/lib/modules -type f -name 'x1e80100-microsoft-romulus13.dtb' -print -quit)"

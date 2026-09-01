@@ -19,11 +19,9 @@ make_archive() {
 
 make_archive iptsd-sl7 iptsd-sl7-3.1.0 iptsd-sl7-3.1.0.tar.gz
 make_archive sl7-mac sl7-mac-1.0.0 sl7-mac-1.0.0.tar.gz
-make_archive qcom-firmware-extract qcom-firmware-extract-2 qcom-firmware-extract-2.tar.gz
 
 cp "$PROJECT_ROOT/packages/iptsd-sl7/iptsd-sl7.spec" "$topdir/SPECS/"
 cp "$PROJECT_ROOT/packages/sl7-mac/sl7-mac.spec" "$topdir/SPECS/"
-cp "$PROJECT_ROOT/packages/qcom-firmware-extract/qcom-firmware-extract.spec" "$topdir/SPECS/"
 
 support_archive="$topdir/SOURCES/fedora-sl7-remix-support-$(<"$PROJECT_ROOT/VERSION").tar.gz"
 tar --sort=name --mtime='UTC 2026-08-26' --owner=0 --group=0 --numeric-owner \

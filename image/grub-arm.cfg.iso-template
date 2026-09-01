@@ -1,4 +1,4 @@
-# Fedora SL7 Remix AArch64 live media configuration
+# Fedora SL7 Remix AArch64 personalization-base configuration
 set default="0"
 
 function load_video {
@@ -6,8 +6,6 @@ function load_video {
     insmod efi_uga
     insmod all_video
 }
-set basicgfx="nomodeset"
-
 load_video
 set gfxpayload=keep
 insmod gzio
@@ -20,27 +18,35 @@ set timeout=${boot_timeout}
 set timeout_style=${boot_timeout_style}
 search ${search_params}
 
-menuentry "Start ${title} (automatic hardware detection)" --class fedora --class gnu-linux --class gnu --class os {
-    linux ($$root)${bootpath}/${kernel_file} ${boot_options}
-    initrd ($$root)${bootpath}/${initrd_file}
-}
-menuentry "Test this media & start ${title}" --class fedora --class gnu-linux --class gnu --class os {
-    linux ($$root)${bootpath}/${kernel_file} ${boot_options} rd.live.check
-    initrd ($$root)${bootpath}/${initrd_file}
-}
-submenu "Troubleshooting -->" {
-    menuentry "Start ${title} in basic graphics mode" --class fedora --class gnu-linux --class gnu --class os {
-        linux ($$root)${bootpath}/${kernel_file} ${boot_options} $${basicgfx}
-        initrd ($$root)${bootpath}/${initrd_file}
+if [ -f ($$root)/boot/sl7/model.cfg ]; then
+    source ($$root)/boot/sl7/model.cfg
+fi
+
+if [ "$${sl7_personalized}" = "1" ]; then
+    menuentry "Start ${title} for $${sl7_model_label}" --class fedora --class gnu-linux --class gnu --class os {
+        linux ($$root)${bootpath}/${kernel_file} ${boot_options} sl7.personalized=1 sl7.model=$${sl7_model}
+        if [ -n "$${sl7_dtb}" ]; then
+            devicetree ($$root)$${sl7_dtb}
+        fi
+        initrd ($$root)${bootpath}/${initrd_file} ($$root)/boot/sl7/personalization.cpio
     }
-    menuentry "Force Surface Laptop 7 13.8-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
-        linux ($$root)${bootpath}/${kernel_file} ${boot_options}
-        devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus13.dtb
-        initrd ($$root)${bootpath}/${initrd_file}
+    submenu "Advanced device-tree recovery -->" {
+        menuentry "Force Surface Laptop 7 13.8-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
+            linux ($$root)${bootpath}/${kernel_file} ${boot_options} sl7.personalized=1 sl7.model=Romulus13
+            devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus13.dtb
+            initrd ($$root)${bootpath}/${initrd_file} ($$root)/boot/sl7/personalization.cpio
+        }
+        menuentry "Force Surface Laptop 7 15-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
+            linux ($$root)${bootpath}/${kernel_file} ${boot_options} sl7.personalized=1 sl7.model=Romulus15
+            devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus15.dtb
+            initrd ($$root)${bootpath}/${initrd_file} ($$root)/boot/sl7/personalization.cpio
+        }
     }
-    menuentry "Force Surface Laptop 7 15-inch DTB" --class fedora --class gnu-linux --class gnu --class os {
-        linux ($$root)${bootpath}/${kernel_file} ${boot_options}
-        devicetree ($$root)/boot/dtb/fedora-sl7-remix/romulus15.dtb
-        initrd ($$root)${bootpath}/${initrd_file}
+else
+    menuentry "Personalize this base image from Windows before booting" {
+        echo "This is a firmware-free Fedora SL7 Remix personalization base."
+        echo "Run the Windows personalizer on a supported Surface Laptop 7 first."
+        echo "No disk has been modified. Press Escape to return."
+        sleep --interruptible 30
     }
-}
+fi

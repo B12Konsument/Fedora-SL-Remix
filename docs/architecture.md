@@ -1,86 +1,76 @@
 # Architecture
 
-Fedora SL7 Remix has one package pipeline and two delivery paths. The primary
-path installs the hardware-enablement RPM bundle on top of an official Fedora
-44 AArch64 installation. The optional path feeds the same RPM repository into
-Fedora's official KDE Live KIWI description and produces a convenience ISO.
+Fedora SL7 Remix separates redistributable compilation from private device
+personalization:
 
 ```text
-pinned Fedora/kernel/community sources
-                  |
-                  v
-       verified source and patch queue
-                  |
-                  v
-   kernel + IPTSD + MAC + support RPMs
-                  |
-            local RPM metadata repo
-             /                \
-            v                  v
-     install.sh bundle     optional KIWI ISO
+pinned Fedora and community sources
+                |
+                v
+  SL7 kernel, RPMs, KDE Live, Anaconda
+                |
+                v
+ firmware-free base ISO + checksum-locked release metadata
+                |
+                v
+ Windows SKU detection + local firmware extraction
+                |
+                v
+ private Romulus13 or Romulus15 Live ISO
 ```
 
-## Installer-first path
+## Base image
 
-`install.sh` intentionally does not implement a partitioner. Fedora's Anaconda
-handles storage, encryption, and dual boot; the project then performs the
-SL7-specific bootstrap. This keeps destructive disk logic out of a young
-hardware-support project while retaining the useful Asahi-style property: one
-command detects the exact machine and installs a coherent, verified platform
-stack.
+Linux CI builds Fedora 44's `KDE-Desktop-Live` KIWI profile with the local RPM
+repository. It then adds both Romulus DTBs, a 4 KiB model-selector file, and a
+256 MiB uncompressed `newc` CPIO placeholder as contiguous ISO extents.
+`personalization-layout.json` records the exact offsets, lengths, placeholder
+hashes, base hash, source-lock hash, supported SKU map, and release parts.
 
-The installer accepts only Fedora 44 on AArch64 and the two consumer Snapdragon
-SKU strings for Microsoft models 2036/2037. Intel/x86_64 Surface Laptop 7 for
-Business variants are outside the supported hardware scope. Device-tree compatibility strings
-provide a fallback when SMBIOS is unavailable. It installs the release RPM
-bundle, preserves the Fedora kernel as a fallback, makes the `.sl7` kernel the
-default, extracts firmware when an accessible Windows volume is found, rebuilds
-all initramfs images, and records detection data in
-`/var/lib/fedora-sl7-remix/install.json`.
+The base contains no Microsoft firmware and is not end-user boot media. Its
+placeholder selector exposes only a GRUB explanation. A personalized selector
+loads the selected DTB and appends the CPIO slot to Fedora's normal initrd.
 
-The installer never writes partition tables and never deletes or modifies the
-Windows filesystem. Automatic firmware discovery mounts candidate NTFS volumes
-read-only.
+Changing a reserved extent invalidates Fedora's embedded whole-volume MD5. The
+base therefore clears that field and does not offer `rd.live.check`. SHA-256 is
+used for release parts, the complete base, and the private output.
 
-## Kernel and hardware selection
+## Windows boundary
 
-The kernel is built from Fedora 44 kernel dist-git. External commits are fetched
-by immutable commit URL, checked against SHA-256, applied after Fedora's patch,
-and collapsed into Fedora's `linux-kernel-test.patch` hook. The RPM release has
-the `.sl7.1` build ID.
+The PowerShell 5.1 personalizer runs without WSL or downloaded executables. It
+accepts only Windows 11 ARM64 and SKU 2036/2037. On those supported devices, a
+warned manual override can force the alternate DTB for recovery testing. It
+verifies every release component before opening the ISO for fixed-offset
+writes.
 
-The patch generator stops instead of using fuzz when a change no longer applies.
-`kernel/series.json` also records changes intentionally omitted because Linux
-7.1 already contains their behavior.
+The firmware archive contains the GPU firmware at its early kernel path and a
+complete validated tree under `/sl7-personalization`. It contains a redacted
+manifest with model, SKU, source type, and file hashes; it never records serial
+numbers, network addresses, usernames, or local paths.
 
-Both Romulus device trees are built into `kernel-uki-dtbloader`. Normal boots
-use the UKI hardware-ID selector. The optional ISO additionally carries the two
-DTBs as regular files for explicit GRUB troubleshooting entries.
+## Live and installed firmware
 
-The package repository also contains the exact unmodified Fedora UKI, core
-modules, and modules RPMs recorded in the source lock. Exact dependencies in
-the support package force that installonly kernel to coexist with the patched
-`.sl7` kernel, so both installer-first and ISO installations retain a Fedora
-recovery boot target. The default-selection service only selects kernels whose
-release contains `.sl7.`. RPM transaction file triggers reapply that choice at
-the end of kernel installation or removal transactions, and the boot-time
-service provides a second consistency check.
+The additional initrd makes display firmware available during early boot. A
+dracut pre-pivot hook copies the private tree to the live root's `/run`.
+`sl7-personalize-live.service` validates every hash and installs the complete
+tree into the live overlay before networking and the display manager.
 
-## Firmware boundary
+Anaconda does not install that overlay. The support RPM therefore supplies an
+internal Anaconda post script, which validates and copies the same tree into
+the target, restores labels, regenerates initramfs images, and reapplies the
+SL7-kernel default policy. Installation fails instead of producing an
+unbootable target when personalization is missing or corrupt.
 
-Public artifacts contain the extractor, source metadata, and user interface,
-but no files extracted from Microsoft packages. Local firmware installation and
-private ISO builds verify the exact MSI hash in `sources.lock.json` before
-copying only the filenames referenced by the Romulus device tree.
+## Kernel policy
 
-Release inspection opens the live filesystem and rejects public images that
-contain any denylisted Microsoft filename.
+The patched Fedora kernel uses the `.sl7.1` build ID. The support RPM also has
+exact dependencies on the pinned unmodified Fedora modules and
+`kernel-uki-dtbloader` RPM. Transaction triggers and a boot service keep the
+SL7 kernel selected while retaining Fedora's kernel as a recovery target.
 
-## Reproducibility
+## Release boundary
 
-Git commits, generated Git archive hashes, HTTP downloads, individual kernel
-patches, the AArch64 Fedora container image, and GitHub Actions are pinned.
-Fedora RPM dependencies remain verified by Fedora repository signatures; the
-complete project-RPM NEVRA list is emitted beside every image. Outputs also
-contain the source lock, license report, checksums, and an SPDX 2.3 SBOM for the
-project RPM repository.
+Public releases contain only the firmware-free base split below GitHub's asset
+limit, layout JSON, Windows customizer bundle, source/RPM/license manifests,
+checksums, and an SBOM. CI scans the live root and ISO for Microsoft firmware.
+Private personalized images never enter CI or GitHub releases.
