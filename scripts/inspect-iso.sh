@@ -122,7 +122,7 @@ done < <(find "$iso_mount" -xdev -type f \( -iname 'initrd' -o -iname 'initrd.im
 ((initrd_index > 0)) || die 'ISO is missing a boot initramfs'
 
 denylist="$PROJECT_ROOT/firmware/prohibited-content-hashes.json"
-"$PROJECT_ROOT/scripts/check-prohibited-content.sh" "$denylist" \
+"$PROJECT_ROOT/scripts/check-prohibited-content.sh" "$denylist" "$root" \
     "$iso_mount" "$root" "$initrd_scan"
 
 log 'Personalization-base ISO inspection passed'

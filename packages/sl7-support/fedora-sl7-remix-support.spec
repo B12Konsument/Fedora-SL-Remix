@@ -1,5 +1,5 @@
 Name:           fedora-sl7-remix-support
-Version:        0.2.2
+Version:        0.2.3
 Release:        1%{?dist}
 Summary:        Hardware and personalized-firmware integration for Surface Laptop 7
 License:        GPL-2.0-only AND CC-BY-SA-4.0
@@ -70,6 +70,9 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 %config(noreplace) %{_sysconfdir}/iptsd.d/91-calibration-045E-0C77.conf
 
 %changelog
+* Wed Sep 02 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.3-1
+- Recognize Fedora-owned linux-firmware when checking proprietary provenance
+
 * Wed Sep 02 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.2-1
 - Avoid false positives when inspecting redistributable Qualcomm firmware
 
