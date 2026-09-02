@@ -82,7 +82,7 @@ if [[ -n "$rootfs" ]]; then
 fi
 
 boot_kernel_reference="$(awk '$1 == "linux" {print $2; exit}' "$iso_mount/boot/grub2/grub.cfg")"
-boot_kernel_path=${boot_kernel_reference#'($root)'}
+boot_kernel_path=${boot_kernel_reference#(\$root)}
 [[ $boot_kernel_path == /* && $boot_kernel_path != *..* ]] || \
     die "GRUB contains an invalid live-kernel path: $boot_kernel_reference"
 boot_kernel="$iso_mount$boot_kernel_path"
