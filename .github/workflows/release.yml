@@ -1,12 +1,10 @@
 name: Build experimental AArch64 release
 
 on:
-  push:
-    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
-        description: Existing tag to publish
+        description: New release tag to create
         required: true
         type: string
 
@@ -18,14 +16,45 @@ concurrency:
   cancel-in-progress: false
 
 jobs:
+  validate:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+      - name: Install validation tools
+        run: sudo apt-get update && sudo apt-get install -y cpio jq libxml2-utils ripgrep shellcheck unzip zip
+      - name: Run repository and Linux personalizer tests
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          test "$RELEASE_TAG" = "v$(cat VERSION)"
+          ./tests/run.sh
+  windows-personalizer:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    steps:
+      - name: Check out the tagged source
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+        with:
+          ref: ${{ github.sha }}
+      - name: Install Pester
+        shell: powershell
+        run: Install-Module Pester -Force -Scope CurrentUser -RequiredVersion 5.7.1
+      - name: Test the native Windows personalizer
+        shell: powershell
+        run: Invoke-Pester -Path tests/windows -CI
   build:
+    needs: [validate, windows-personalizer]
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
       - name: Check out the tagged source
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
-          ref: ${{ inputs.tag || github.ref }}
+          ref: ${{ github.sha }}
       - name: Install the container runtime
         run: sudo apt-get update && sudo apt-get install -y jq podman zip
       - name: Configure the container runtime for the hosted ARM runner
@@ -60,14 +89,33 @@ jobs:
           ./scripts/split-release.sh "$iso" release-assets artifacts/personalization-layout.json
           cp artifacts/{RPM-MANIFEST.txt,SOURCE-MANIFEST.json,LICENSE-REPORT.json,Fedora-SL7-Remix.spdx.json} release-assets/
           (cd release-assets && find . -maxdepth 1 -type f ! -name SHA256SUMS -printf '%f\n' | sort | xargs sha256sum > SHA256SUMS)
-      - name: Publish experimental release
+      - name: Stage the complete experimental release as a draft
         env:
           GH_TOKEN: ${{ github.token }}
-          RELEASE_TAG: ${{ inputs.tag || github.ref_name }}
+          RELEASE_TAG: ${{ inputs.tag }}
         run: |
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"; then
+            echo "Refusing to reuse existing tag $RELEASE_TAG" >&2
+            exit 1
+          elif test "$?" -ne 2; then
+            echo "Could not verify that tag $RELEASE_TAG is unused" >&2
+            exit 1
+          fi
+          git config user.name github-actions[bot]
+          git config user.email 41898282+github-actions[bot]@users.noreply.github.com
+          git tag -a "$RELEASE_TAG" "$GITHUB_SHA" -m "Fedora SL7 Remix $RELEASE_TAG"
+          git push origin "refs/tags/$RELEASE_TAG"
           gh release create "$RELEASE_TAG" release-assets/* \
             --repo "$GITHUB_REPOSITORY" \
+            --draft \
             --prerelease \
             --verify-tag \
             --title "Fedora SL7 Remix $RELEASE_TAG (experimental)" \
-            --notes "Experimental personalization base for the Windows ISO creator. Do not boot the base image directly. Secure Boot must be disabled. Microsoft firmware is not distributed by this release. The touchscreen is known broken."
+            --notes "Experimental personalization base for the Windows and Linux ISO creators. Do not boot the base image directly. Secure Boot must be disabled. Microsoft firmware is not distributed by this release. The touchscreen is known broken."
+      - name: Publish once and verify release immutability
+        env:
+          GH_TOKEN: ${{ github.token }}
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          gh release edit "$RELEASE_TAG" --repo "$GITHUB_REPOSITORY" --draft=false --prerelease
+          test "$(gh api "repos/$GITHUB_REPOSITORY/releases/tags/$RELEASE_TAG" --jq .immutable)" = true

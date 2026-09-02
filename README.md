@@ -11,11 +11,12 @@ Surface Laptop 7. It supports Microsoft system SKU 2036 (13.8-inch) and SKU
 2037 (15-inch). Intel/x86_64 models, Surface Pro devices, and other Surface
 generations are rejected.
 
-The ISO creator runs on the supported Surface under Windows 11 ARM64. It
-detects the model, downloads a verified firmware-free project base, obtains
-the device firmware locally, and writes one device-specific ISO to the current
-user's Downloads folder. It does not install Linux, repartition a disk, write a
-USB drive, use SSH, compile a kernel, require WSL, or require a Fedora VM.
+The private ISO creator runs either on the supported Surface under Windows 11
+ARM64 or in a Fedora/Arch Linux VM on x86-64 or ARM64. Linux users explicitly
+select the physical laptop model because a VM cannot reliably detect its SKU.
+Both paths download the verified firmware-free base, obtain firmware from the
+checksum-locked official Microsoft package, and write one device-specific ISO.
+They do not install Linux, repartition a disk, or write a USB drive.
 
 ## Supported hardware
 
@@ -27,6 +28,61 @@ USB drive, use SSH, compile a kernel, require WSL, or require a Fedora VM.
 Snapdragon X Plus/X Elite choice, RAM size, and SSD capacity do not change the
 DTB. See the evidence-based [hardware status](docs/hardware-status.md) before
 installing.
+
+## Create your ISO from Linux
+
+Run this in a Fedora Linux or Arch Linux terminal in an x86-64 or ARM64 VM:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/B12Konsument/Fedora-SL-Remix/main/linux/install.sh | bash
+```
+
+The bootstrap deliberately reads prompts from `/dev/tty`, so piping the script
+does not consume answers from standard input. For the more auditable form:
+
+```bash
+curl -fLO https://raw.githubusercontent.com/B12Konsument/Fedora-SL-Remix/main/linux/install.sh
+less install.sh
+bash install.sh
+```
+
+Select exactly one physical model when prompted: SKU 2036 maps to Romulus13 and
+SKU 2037 maps to Romulus15. CPU bin, RAM, and SSD capacity do not change that
+mapping. All `[Y/n]` prompts accept Enter, `y`, or `yes` as yes and `n` or `no`
+as no. Missing packages are displayed before the tool offers to install them.
+Fedora uses `dnf`; Arch uses `pacman`. Only package installation uses `sudo`.
+The native packages are `curl`, `jq`, `coreutils`, `findutils`, `cpio`,
+`msitools` (providing `msiextract`), and `tar`.
+
+The stable direct interface is:
+
+```bash
+./linux/new-fedora-sl7-iso.sh \
+  --model romulus15 \
+  --firmware-source download \
+  --output-dir "$HOME/Downloads"
+```
+
+An existing copy of the exact locked MSI can be used instead:
+
+```bash
+./linux/new-fedora-sl7-iso.sh \
+  --model romulus13 \
+  --firmware-source msi \
+  --msi-path /path/to/SurfaceLaptop7_ARM_Win11.msi \
+  --output-dir "$HOME/Downloads"
+```
+
+Use `--non-interactive` only with an explicit `--model`, `--firmware-source`,
+and all source-specific arguments. `--release latest|TAG` and `--keep-cache`
+are also supported; run `--help` for the complete interface. Plan for about
+10 GiB of free space. The Linux path needs no WSL, Podman, Docker, QEMU, loop
+mount, privileged mount, or direct Surface hardware access.
+
+Linux cannot reproduce Windows DriverStore, Authenticode, and catalog checks.
+Its trust boundary is therefore the complete official Microsoft MSI URL, size,
+and SHA-256 recorded in the release. The MSI is verified before `msiextract`
+runs, and ambiguous or missing firmware files stop the process.
 
 ## Create your ISO from Windows
 
@@ -50,7 +106,7 @@ extraction.
 The result is named like:
 
 ```text
-Downloads\Fedora-SL7-Remix-44-0.2.4-Romulus15-PRIVATE.aarch64.iso
+Downloads\Fedora-SL7-Remix-44-0.2.5-Romulus15-PRIVATE.aarch64.iso
 ```
 
 A SHA-256 file and a redacted JSON provenance report are written beside it.
@@ -94,14 +150,14 @@ The installed system receives the same firmware and selected SL7 stack through
 an explicit Anaconda post-install handoff. The patched `.sl7` kernel remains the
 default and a pinned Fedora kernel remains available as a recovery entry.
 
-## Why a Windows personalizer is required
+## Personalization boundary
 
 The patched kernel, DTBs, IPTSD, sl7-mac, Anaconda integration, and all other
 redistributable components are built once by project CI. The base cannot boot
 normally and contains no Microsoft binaries. Its GRUB menu explains that it
 must be personalized instead of continuing to a firmware-related black screen.
 
-Windows performs only the private final step:
+Windows or Linux performs only the private final step:
 
 1. Detect SKU 2036 or 2037.
 2. Verify the published base ISO and every split download part.
@@ -111,8 +167,10 @@ Windows performs only the private final step:
 
 Windows is not required for the normal Linux driver stack after those files are
 installed. Keeping Windows is strongly recommended for Surface firmware
-updates, recovery, and continued hardware testing. See
-[firmware and Windows](docs/firmware.md).
+updates, recovery, and continued hardware testing. Regardless of the creation
+host, the private ISO must not be redistributed, Secure Boot must be disabled,
+and a physical Surface test is still required. The touchscreen is currently
+known not to work. See [firmware](docs/firmware.md).
 
 ## Maintainer build
 

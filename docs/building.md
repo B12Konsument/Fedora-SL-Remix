@@ -1,7 +1,8 @@
 # Maintainer building and release process
 
-End users should use the Windows command in the README. This document covers
-the redistribution-safe base build.
+End users should use the Windows or Linux command in the README. This document
+covers the redistribution-safe base build; the Linux private personalization
+step itself has no Podman, mount, loop-device, or root requirement.
 
 ## Requirements
 
@@ -45,9 +46,37 @@ be removed.
 
 ## Release preparation
 
-Tag CI builds the base on AArch64, inspects the mounted live filesystem, runs a
-QEMU smoke test, splits the ISO below 1.9 GiB, packages the PowerShell files,
-and finalizes `personalization-layout.json` with part and bundle hashes.
+Tag CI first runs repository, Linux, and native Windows tests. It then builds
+the base on AArch64, inspects the mounted live filesystem, runs a QEMU smoke
+test, splits the ISO below 1.9 GiB, packages the PowerShell and Bash files, and
+finalizes `personalization-layout.json` with part and bundle sizes, hashes,
+entrypoint, minimum version, and contained Linux customizer version.
+
+The release verifier expands both bundles and rejects Microsoft firmware,
+MSIs, private ISOs, and fixture directories. The workflow uploads the complete
+asset set to a draft, publishes it once, and verifies GitHub reports the release
+as immutable. Repository release immutability must be enabled before tagging;
+it applies only to future releases. Maintainers dispatch the release workflow
+with the exact `v<contents-of-VERSION>` tag. The workflow creates that tag only
+after validation, image build, QEMU smoke testing, and asset verification, and
+refuses any tag name that already exists.
+
+## Linux personalization hosts
+
+The end-user Linux personalizer supports Fedora and Arch on x86-64 and ARM64.
+It checks these official packages and offers to install missing ones only after
+an explicit `[Y/n]` confirmation:
+
+```text
+curl jq coreutils findutils cpio msitools tar
+```
+
+`msitools` supplies `msiextract`. Fedora installation uses `sudo dnf install`;
+Arch uses `sudo pacman -S --needed`. If an architecture's configured official
+repositories do not provide a package, the tool stops instead of fetching an
+unreviewed binary. All downloads, extraction, hashing, CPIO creation, and ISO
+writes subsequently run as the unprivileged user. About 10 GiB must be free on
+the output and cache filesystems.
 
 Every GitHub Action is pinned to a commit SHA. Releases remain prereleases
 until the 15-inch physical checklist passes. A public job must fail if known

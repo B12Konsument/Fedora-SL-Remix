@@ -15,15 +15,18 @@ Status terms:
 | Surface Laptop 7 13.8-inch, SKU 2036 | Romulus 13 | untested |
 | Surface Laptop 7 15-inch, SKU 2037 | Romulus 15 | hardware verification pending |
 
-Only Windows 11 ARM64 systems matching those SKU values are accepted.
-Intel/x86_64 models, Surface Pro devices, and other generations are outside
-scope. CPU bin, RAM size, and SSD capacity do not select a different DTB.
+Windows creation accepts only Windows 11 ARM64 systems matching those SKU
+values. Fedora and Arch creation runs in x86-64 or ARM64 VMs and requires an
+explicit physical model selection. Intel Surface models, Surface Pro devices,
+and other generations are outside scope. CPU bin, RAM size, and SSD capacity
+do not select a different DTB.
 
 ## Functional matrix
 
 | Function | Status | Notes |
 | --- | --- | --- |
 | Windows detection and private ISO creation | CI-tested | Pester uses synthetic fixtures; physical Windows test pending |
+| Linux model selection and private ISO creation | CI-tested | Fedora/Arch jobs use synthetic fixtures; physical boot test pending |
 | AArch64 UEFI boot and fixed DTB | untested | Base layout and both DTBs are inspected in CI |
 | KDE live desktop | untested | Requires early private GPU firmware |
 | Anaconda installation and reboot | untested | Private firmware has an explicit post-install handoff |

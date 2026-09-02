@@ -38,6 +38,22 @@ unofficial mirror.
 The GPU file is supplied during early boot. The remaining files are validated
 and applied to the live environment, then explicitly persisted by Anaconda.
 
+## Linux ISO creation
+
+Fedora and Arch hosts obtain firmware only from the complete Microsoft Surface
+MSI pinned by each project release. The user may download it through the tool
+or provide an existing local copy; both routes require the exact release size
+and SHA-256 before extraction. Individual firmware downloads and unofficial
+mirrors are never used.
+
+Native Linux tools cannot reproduce Windows DriverStore inventory,
+Authenticode, or Microsoft catalog validation. The checksum of the complete
+official MSI is therefore the Linux trust boundary. After `msiextract`, every
+required firmware basename must have exactly one match. Missing or ambiguous
+matches abort creation. The manifest records only the model, SKU, display
+size, source type, MSI version, relative firmware paths, and file hashes. It
+contains no local path, username, serial number, IP/MAC address, or VM detail.
+
 ## Installed-system recovery
 
 The installed `sl7-firmware` command remains available for explicit recovery
@@ -57,4 +73,4 @@ these commands.
 Microsoft firmware and driver packages remain subject to Microsoft's terms.
 The private workflow does not grant redistribution rights. Never publish the
 private ISO, extracted binaries, an MSI, or a firmware archive. Public project
-releases contain placeholders only.
+releases and CI artifacts contain placeholders only.

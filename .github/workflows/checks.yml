@@ -32,6 +32,32 @@ jobs:
       - name: Test the native Windows personalizer
         shell: powershell
         run: Invoke-Pester -Path tests/windows -CI
+  linux-hosts:
+    name: Linux personalizer (${{ matrix.host }})
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    strategy:
+      fail-fast: false
+      matrix:
+        host: [fedora, arch]
+        include:
+          - host: fedora
+            image: fedora:44
+          - host: arch
+            image: archlinux:base
+    container:
+      image: ${{ matrix.image }}
+    steps:
+      - name: Install Fedora dependencies
+        if: matrix.host == 'fedora'
+        run: dnf install -y bash coreutils cpio curl findutils git jq msitools tar util-linux
+      - name: Install Arch dependencies
+        if: matrix.host == 'arch'
+        run: pacman -Syu --noconfirm bash coreutils cpio curl findutils git jq msitools tar util-linux
+      - name: Check out the repository
+        uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
+      - name: Test the mount-free Linux personalizer
+        run: ./tests/test-linux-customizer.sh
   build-packages-and-prepare-kernel:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 90
@@ -46,6 +72,13 @@ jobs:
           sudo podman system renumber
       - name: Build the pinned Fedora builder
         run: sudo podman build --tag fedora-sl7-remix-builder --file build/Containerfile build
+      - name: Test the Linux personalizer on Fedora ARM64
+        run: |
+          sudo podman run --rm --security-opt label=disable \
+            --entrypoint /bin/bash \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            localhost/fedora-sl7-remix-builder:latest \
+            -lc '/workspace/tests/test-linux-customizer.sh'
       - name: Verify KIWI runtime compatibility patches
         run: |
           sudo podman run --rm --security-opt label=disable \

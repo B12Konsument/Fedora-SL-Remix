@@ -63,7 +63,7 @@ mount -o loop,ro "$iso" "$iso_mount"
     die 'personalization slot has the wrong size'
 grep -Fq 'sl7_personalized="0"' "$iso_mount/boot/sl7/model.cfg" || \
     die 'the base model-selector does not fail closed'
-grep -Fq 'Personalize this base image from Windows before booting' "$iso_mount/boot/grub2/grub.cfg" || \
+grep -Fq 'Personalize this base image from Windows or Linux before booting' "$iso_mount/boot/grub2/grub.cfg" || \
     die 'GRUB is missing the unpersonalized-image guard'
 if grep -Fq 'rd.live.check' "$iso_mount/boot/grub2/grub.cfg"; then
     die 'the mutable personalization base must not advertise an embedded media check'
