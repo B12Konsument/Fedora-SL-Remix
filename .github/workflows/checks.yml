@@ -49,9 +49,10 @@ jobs:
       - name: Verify KIWI runtime compatibility patches
         run: |
           sudo podman run --rm --security-opt label=disable \
-            --entrypoint /workspace/scripts/patch-kiwi-efi-sync.sh \
+            --entrypoint /bin/bash \
             --volume "$GITHUB_WORKSPACE:/workspace" \
-            localhost/fedora-sl7-remix-builder:latest
+            localhost/fedora-sl7-remix-builder:latest \
+            /workspace/scripts/patch-kiwi-efi-sync.sh
       - name: Verify locked sources and build integration RPMs
         run: |
           sudo podman run --rm --security-opt label=disable \
