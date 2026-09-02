@@ -26,4 +26,15 @@ if ! patch --dry-run --batch --fuzz=0 --directory="$kiwi_site_packages" --strip=
     die 'KIWI EFI compatibility patch no longer applies; update and audit patches/kiwi/0001-do-not-copy-xattrs-into-fat-efi-image.patch'
 fi
 patch --batch --fuzz=0 --silent --directory="$kiwi_site_packages" --strip=1 < "$patch_file"
-log 'Applied the KIWI FAT EFI extended-attribute compatibility patch'
+
+kernel_patch_file="$PROJECT_ROOT/patches/kiwi/0002-prefer-sl7-kernel.patch"
+[[ -f "$kiwi_package/system/kernel.py" ]] || \
+    die 'installed KIWI package does not contain the kernel lookup implementation'
+if ! patch --dry-run --batch --fuzz=0 --directory="$kiwi_site_packages" --strip=1 < "$kernel_patch_file" >/dev/null; then
+    printf '%s\n' 'KIWI kernel-selection patch context:' >&2
+    rpm -q kiwi-cli python3-kiwi 2>&1 >&2 || true
+    grep -n -A12 -B4 'kernel_entries = sorted' "$kiwi_package/system/kernel.py" >&2 || true
+    die 'KIWI kernel-selection patch no longer applies; update and audit patches/kiwi/0002-prefer-sl7-kernel.patch'
+fi
+patch --batch --fuzz=0 --silent --directory="$kiwi_site_packages" --strip=1 < "$kernel_patch_file"
+log 'Applied the KIWI EFI and Fedora SL7 kernel-selection compatibility patches'

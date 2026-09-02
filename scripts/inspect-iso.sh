@@ -12,6 +12,7 @@ require_command lsinitrd
 require_command mount
 require_command mountpoint
 require_command mknod
+require_command cmp
 require_command rpm
 require_command umount
 
@@ -79,6 +80,17 @@ if [[ -n "$rootfs" ]]; then
     mount -o loop,ro "$rootfs" "$root_mount"
     root="$root_mount"
 fi
+
+boot_kernel_reference="$(awk '$1 == "linux" {print $2; exit}' "$iso_mount/boot/grub2/grub.cfg")"
+boot_kernel_path=${boot_kernel_reference#'($root)'}
+[[ $boot_kernel_path == /* && $boot_kernel_path != *..* ]] || \
+    die "GRUB contains an invalid live-kernel path: $boot_kernel_reference"
+boot_kernel="$iso_mount$boot_kernel_path"
+[[ -f $boot_kernel ]] || die "GRUB live kernel is missing from the ISO: $boot_kernel_path"
+sl7_kernel="$(find "$root/boot" -maxdepth 1 -type f -name 'vmlinuz-*.sl7.*' -print -quit)"
+[[ -n $sl7_kernel ]] || die 'live root is missing the patched Fedora SL7 kernel image'
+cmp -s "$boot_kernel" "$sl7_kernel" || \
+    die "GRUB live boot does not use the patched Fedora SL7 kernel: $boot_kernel_path"
 
 [[ -x "$root/usr/bin/sl7-firmware" ]] || die 'live root is missing sl7-firmware'
 [[ -x "$root/usr/bin/sl7-detect" ]] || die 'live root is missing sl7-detect'

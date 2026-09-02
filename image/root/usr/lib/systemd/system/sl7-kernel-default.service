@@ -1,6 +1,7 @@
 [Unit]
 Description=Keep the Fedora SL7 Remix kernel as the default boot entry
 ConditionPathExists=/boot
+ConditionKernelCommandLine=!rd.live.image
 After=local-fs.target
 
 [Service]

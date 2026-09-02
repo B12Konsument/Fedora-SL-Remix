@@ -26,6 +26,7 @@ set sl7_personalized="1"
 set sl7_model="QemuTest"
 set sl7_model_label="CI smoke-test fixture"
 set sl7_dtb=""
+set sl7_test_options="sl7.qemu-smoke=1"
 EOF
 selector_size=$(jq -r '.slots.model_selector.length' "$layout")
 selector_bytes=$(stat -c %s "$selector")

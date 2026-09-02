@@ -1,0 +1,17 @@
+--- a/kiwi/system/kernel.py
++++ b/kiwi/system/kernel.py
+@@ -151,6 +151,13 @@
+         for kernel_module_dir in kernel_module_dirs:
+             if os.path.isdir(kernel_module_dir):
+                 kernel_entries = sorted(os.listdir(kernel_module_dir))
++                preferred_kernel_entries = [
++                    entry for entry in kernel_entries if '.sl7.' in entry
++                ]
++                if preferred_kernel_entries:
++                    kernel_entries = preferred_kernel_entries + [
++                        entry for entry in kernel_entries
++                        if entry not in preferred_kernel_entries
++                    ]
+                 if kernel_entries:
+                     kernel_dirs += kernel_entries
+         if kernel_dirs:

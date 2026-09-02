@@ -98,6 +98,17 @@ grep -Fq "ValidateSet('Auto', 'Windows', 'Msi')" "$PROJECT_ROOT/windows/New-Fedo
     die 'the stable Windows firmware-source interface is missing'
 grep -Fq "ValidateSet('Auto', 'Romulus13', 'Romulus15')" "$PROJECT_ROOT/windows/New-FedoraSl7Iso.ps1" || \
     die 'the stable Windows model interface is missing'
+grep -Fq 'ConditionKernelCommandLine=sl7.qemu-smoke=1' \
+    "$PROJECT_ROOT/image/root/usr/lib/systemd/system/sl7-qemu-smoke-marker.service" || \
+    die 'the QEMU marker must require the synthetic smoke-test kernel parameter'
+grep -Fq 'set sl7_test_options="sl7.qemu-smoke=1"' "$PROJECT_ROOT/scripts/personalize-test-iso.sh" || \
+    die 'the synthetic QEMU personalization must enable its userspace marker'
+grep -Fq 'ConditionKernelCommandLine=!rd.live.image' \
+    "$PROJECT_ROOT/image/root/usr/lib/systemd/system/sl7-kernel-default.service" || \
+    die 'the installed-kernel default service must not run in the live environment'
+grep -Fq "entry for entry in kernel_entries if '.sl7.' in entry" \
+    "$PROJECT_ROOT/patches/kiwi/0002-prefer-sl7-kernel.patch" || \
+    die 'the audited KIWI patch must prefer the Fedora SL7 live kernel'
 
 mapfile -t shell_files < <(
     find "$PROJECT_ROOT" \

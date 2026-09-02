@@ -24,7 +24,7 @@ fi
 
 if [ "$${sl7_personalized}" = "1" ]; then
     menuentry "Start ${title} for $${sl7_model_label}" --class fedora --class gnu-linux --class gnu --class os {
-        linux ($$root)${bootpath}/${kernel_file} ${boot_options} sl7.personalized=1 sl7.model=$${sl7_model}
+        linux ($$root)${bootpath}/${kernel_file} ${boot_options} sl7.personalized=1 sl7.model=$${sl7_model} $${sl7_test_options}
         if [ -n "$${sl7_dtb}" ]; then
             devicetree ($$root)$${sl7_dtb}
         fi

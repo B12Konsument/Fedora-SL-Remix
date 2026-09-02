@@ -51,7 +51,7 @@ jobs:
             --entrypoint /workspace/scripts/qemu-smoke.sh \
             --volume "$GITHUB_WORKSPACE:/workspace" \
             localhost/fedora-sl7-remix-builder:latest \
-            /workspace/artifacts/qemu-smoke.iso 300
+            /workspace/artifacts/qemu-smoke.iso 420
           sudo find artifacts/qemu-smoke.iso -delete
       - name: Prepare GitHub-sized assets
         run: |
