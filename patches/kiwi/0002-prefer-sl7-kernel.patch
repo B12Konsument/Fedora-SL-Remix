@@ -1,6 +1,6 @@
 --- a/kiwi/system/kernel.py
 +++ b/kiwi/system/kernel.py
-@@ -151,6 +151,13 @@
+@@ -173,6 +173,14 @@
          for kernel_module_dir in kernel_module_dirs:
              if os.path.isdir(kernel_module_dir):
                  kernel_entries = sorted(os.listdir(kernel_module_dir))
