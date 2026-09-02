@@ -121,29 +121,8 @@ while IFS= read -r -d '' initrd; do
 done < <(find "$iso_mount" -xdev -type f \( -iname 'initrd' -o -iname 'initrd.img' -o -iname 'initrd-*.img' \) -print0)
 ((initrd_index > 0)) || die 'ISO is missing a boot initramfs'
 
-scan_roots=("$iso_mount" "$root" "$initrd_scan")
-microsoft_msi="$(find "${scan_roots[@]}" -xdev -type f -iname '*.msi' -print -quit)"
-[[ -z "$microsoft_msi" ]] || die 'base ISO contains a Microsoft MSI'
 denylist="$PROJECT_ROOT/firmware/prohibited-content-hashes.json"
-[[ -r $denylist ]] || die 'proprietary-firmware denylist is missing'
-
-while IFS= read -r prohibited_name; do
-    prohibited_firmware="$(find "${scan_roots[@]}" -xdev -type f -iname "$prohibited_name" -print -quit)"
-    [[ -z "$prohibited_firmware" ]] || \
-        die "base ISO contains a prohibited Microsoft firmware name: $prohibited_firmware"
-done < <(jq -r '.files[].name' "$denylist")
-
-mapfile -t prohibited_sizes < <(jq -r '[.files[].size] | unique[]' "$denylist")
-size_expression=()
-for size in "${prohibited_sizes[@]}"; do
-    ((${#size_expression[@]} == 0)) || size_expression+=(-o)
-    size_expression+=(-size "${size}c")
-done
-while IFS= read -r -d '' candidate; do
-    candidate_hash="$(sha256sum "$candidate" | cut -d' ' -f1)"
-    if jq -e --arg hash "$candidate_hash" '.files[] | select(.sha256 == $hash)' "$denylist" >/dev/null; then
-        die "base ISO contains known Microsoft firmware content: $candidate"
-    fi
-done < <(find "${scan_roots[@]}" -xdev -type f \( "${size_expression[@]}" \) -print0)
+"$PROJECT_ROOT/scripts/check-prohibited-content.sh" "$denylist" \
+    "$iso_mount" "$root" "$initrd_scan"
 
 log 'Personalization-base ISO inspection passed'
