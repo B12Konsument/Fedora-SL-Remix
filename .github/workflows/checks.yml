@@ -46,6 +46,12 @@ jobs:
           sudo podman system renumber
       - name: Build the pinned Fedora builder
         run: sudo podman build --tag fedora-sl7-remix-builder --file build/Containerfile build
+      - name: Verify KIWI runtime compatibility patches
+        run: |
+          sudo podman run --rm --security-opt label=disable \
+            --entrypoint /workspace/scripts/patch-kiwi-efi-sync.sh \
+            --volume "$GITHUB_WORKSPACE:/workspace" \
+            localhost/fedora-sl7-remix-builder:latest
       - name: Verify locked sources and build integration RPMs
         run: |
           sudo podman run --rm --security-opt label=disable \
