@@ -94,6 +94,7 @@ cmp -s "$boot_kernel" "$sl7_kernel" || \
 
 [[ -x "$root/usr/bin/sl7-firmware" ]] || die 'live root is missing sl7-firmware'
 [[ -x "$root/usr/bin/sl7-detect" ]] || die 'live root is missing sl7-detect'
+[[ -x "$root/usr/bin/iptsd-calibrate" ]] || die 'live root is missing iptsd-calibrate'
 [[ -x "$root/usr/libexec/sl7-apply-personalization" ]] || die 'live root is missing the personalization installer'
 [[ -f "$root/usr/share/anaconda/post-scripts/95-sl7-personalization.ks" ]] || \
     die 'live root is missing the Anaconda personalization handoff'
@@ -108,6 +109,12 @@ dtc -q -I dtb -O dts -o "$romulus13_dts" "$romulus13" || die 'Romulus 13 DTB is 
 dtc -q -I dtb -O dts -o "$romulus15_dts" "$romulus15" || die 'Romulus 15 DTB is malformed'
 grep -Fq 'microsoft,romulus13' "$romulus13_dts" || die 'Romulus 13 DTB has the wrong hardware identifier'
 grep -Fq 'microsoft,romulus15' "$romulus15_dts" || die 'Romulus 15 DTB has the wrong hardware identifier'
+for romulus_dts in "$romulus13_dts" "$romulus15_dts"; do
+    grep -Fq 'qcom,geni-spi-qspi' "$romulus_dts" || \
+        die "Romulus DTB is missing the QSPI controller: $romulus_dts"
+    grep -Fq 'hid-over-spi' "$romulus_dts" || \
+        die "Romulus DTB is missing the SPI-HID touchpad: $romulus_dts"
+done
 
 rpm --root "$root" -q anaconda-install-env-deps anaconda-live \
     fedora-sl7-remix-support iptsd-sl7 sl7-mac \
@@ -115,6 +122,10 @@ rpm --root "$root" -q anaconda-install-env-deps anaconda-live \
 kernel_packages="$work/kernel-packages.txt"
 rpm --root "$root" -qa 'kernel*' > "$kernel_packages" || die 'could not query the live root kernel packages'
 grep -q '[.]sl7[.]' "$kernel_packages" || die 'live root is missing the Fedora SL7 kernel packages'
+sl7_kernel_version=${sl7_kernel##*/vmlinuz-}
+find "$root/usr/lib/modules/$sl7_kernel_version" -type f \
+    -name 'spi-hid.ko*' -print -quit | grep -q . || \
+    die 'patched Fedora SL7 kernel is missing the integrated SPI-HID module'
 stock_kernel_evr="$(jq -er '.sources[] | select(.id == "fedora-kernel-distgit") | .version + "-" + .release' "$SOURCE_LOCK")"
 rpm --root "$root" -q "kernel-uki-dtbloader-$stock_kernel_evr.aarch64" >/dev/null || \
     die 'live root is missing the unmodified Fedora fallback kernel'

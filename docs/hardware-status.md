@@ -28,8 +28,8 @@ scope. CPU bin, RAM size, and SSD capacity do not select a different DTB.
 | KDE live desktop | untested | Requires early private GPU firmware |
 | Anaconda installation and reboot | untested | Private firmware has an explicit post-install handoff |
 | NVMe | untested | Physical installation required |
-| Keyboard | untested | SPI-HID kernel support included |
-| Touchpad and haptics | untested | Patched kernel, IPTSD fork, and calibration included |
+| Keyboard | untested | Integrated HIDSPI v3/QSPI kernel transport included |
+| Touchpad and haptics | untested | Integrated QSPI transport, IPTSD fork, and calibration utility included |
 | Touchscreen | known broken | No working SL7 stack is available |
 | GPU and backlight | untested | Requires `qcdxkmsuc8380.mbn` |
 | Wi-Fi and Bluetooth | untested | ath12k and factory-address integration included |

@@ -81,22 +81,43 @@ grep -Fqx 'source "drivers/hid/spi-hid/Kconfig"' "$source_tree/drivers/hid/Kconf
 # shellcheck disable=SC2016
 grep -Fqx 'obj-$(CONFIG_SPI_HID)		+= spi-hid/' "$source_tree/drivers/hid/Makefile" || \
     die 'SPI-HID is not connected to the parent Makefile'
+grep -Fqx 'config SPI_HID' "$source_tree/drivers/hid/spi-hid/Kconfig" || \
+    die 'the integrated HIDSPI v3/QSPI driver configuration is missing'
+if grep -Eq '^config SPI_HID_(ACPI|CORE|OF)$' "$source_tree/drivers/hid/spi-hid/Kconfig"; then
+    die 'the obsolete split SPI-HID driver remained after the Romulus QSPI patch'
+fi
+grep -Fqx 'spi-hid-objs := spi-hid-core.o' "$source_tree/drivers/hid/spi-hid/Makefile" || \
+    die 'the integrated HIDSPI v3/QSPI module is not configured'
+for obsolete_source in spi-hid-acpi.c spi-hid-of.c spi-hid.h; do
+    [[ ! -e "$source_tree/drivers/hid/spi-hid/$obsolete_source" ]] || \
+        die "obsolete SPI-HID source remained after the Romulus QSPI patch: $obsolete_source"
+done
 
 spi_hid_config=(
     CONFIG_SPI_HID=m
-    CONFIG_SPI_HID_ACPI=m
-    CONFIG_SPI_HID_CORE=m
-    CONFIG_SPI_HID_OF=m
 )
+set_kernel_config() {
+    local config_file=$1 key=$2 value=$3
+    local replacement="$key=$value"
+    if [[ $value == n ]]; then
+        replacement="# $key is not set"
+    fi
+    if grep -q "^$key=" "$config_file"; then
+        sed -i "s/^$key=.*/$replacement/" "$config_file"
+    elif grep -q "^# $key is not set$" "$config_file"; then
+        sed -i "s/^# $key is not set$/$replacement/" "$config_file"
+    else
+        printf '%s\n' "$replacement" >> "$config_file"
+    fi
+}
 for config in "$distgit"/kernel-*-fedora.config; do
     if [[ $(basename "$config") == kernel-aarch64*-fedora.config ]]; then
         for option in "${spi_hid_config[@]}"; do
             key=${option%%=*}
-            grep -q "^$key=" "$config" || printf '%s\n' "$option" >> "$config"
+            set_kernel_config "$config" "$key" "${option#*=}"
         done
     else
-        grep -q '^\(# \)\?CONFIG_SPI_HID' "$config" || \
-            printf '%s\n' '# CONFIG_SPI_HID is not set' >> "$config"
+        set_kernel_config "$config" CONFIG_SPI_HID n
     fi
 done
 
@@ -138,7 +159,7 @@ rpmbuild -ba "$distgit/kernel.spec" \
 mkdir -p "$BUILD_ROOT/rpms"
 find "$topdir/RPMS" -type f -name '*.rpm' -exec cp -f -- {} "$BUILD_ROOT/rpms/" \;
 
-for module in spi-hid.ko spi-hid-acpi.ko spi-hid-of.ko; do
+for module in spi-hid.ko; do
     found=0
     while IFS= read -r rpm_file; do
         # Do not use grep -q here: with pipefail, its early exit makes rpm(8)

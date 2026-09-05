@@ -1,6 +1,6 @@
 Name:           iptsd-sl7
 Version:        3.1.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        IPTS userspace daemon with Surface Laptop 7 fixes
 License:        GPL-2.0-or-later
 URL:            https://github.com/alex-lentz/iptsd
@@ -28,7 +28,7 @@ click handling and resume recovery used by the Surface Laptop 7 touchpad.
 %autosetup
 
 %build
-%meson -Ddebug_tools=[]
+%meson -Ddebug_tools=calibrate
 %meson_build
 
 %install
@@ -44,6 +44,7 @@ click handling and resume recovery used by the Surface Laptop 7 touchpad.
 %dir %{_sysconfdir}/iptsd.d
 %dir %{_datadir}/iptsd
 %{_bindir}/iptsd
+%{_bindir}/iptsd-calibrate
 %{_bindir}/iptsd-check-device
 %{_bindir}/iptsd-find-hidraw
 %{_bindir}/iptsd-find-service
@@ -55,6 +56,9 @@ click handling and resume recovery used by the Surface Laptop 7 touchpad.
 %{_datadir}/iptsd/*
 
 %changelog
+* Sat Sep 05 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 3.1.0-2
+- Include iptsd-calibrate for device-specific SL7 touchpad calibration
+
 * Wed Aug 26 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 3.1.0-1
 - Package the pinned SL7 fork
 

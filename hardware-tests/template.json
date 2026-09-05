@@ -1,7 +1,7 @@
 {
   "schema": 1,
   "result": "draft",
-  "project_version": "0.2.4",
+  "project_version": "0.2.5",
   "git_commit": "REPLACE_WITH_COMMIT",
   "tester": "REPLACE_WITH_GITHUB_HANDLE",
   "device": {

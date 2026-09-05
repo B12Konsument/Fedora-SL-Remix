@@ -72,6 +72,30 @@ jq -e '
     ((has("path") and (.path | length > 0)) or
      (has("url") and (.url | startswith("https://")) and (.sha256 | test("^[0-9a-f]{64}$")))))
 ' "$PROJECT_ROOT/kernel/series.json" >/dev/null
+jq -e '
+  .patches[] |
+  select(.id == "romulus-spi-dma-device-tree") |
+  ([.include[] | select(startswith("drivers/hid/spi-hid/"))] | length) == 10 and
+  (.include | index("drivers/hid/spi-hid/spi-hid-core.c") != null) and
+  (.include | index("drivers/hid/spi-hid/spi-hid-of.c") != null) and
+  (.include | index("drivers/hid/spi-hid/spi-hid-acpi.c") != null)
+' "$PROJECT_ROOT/kernel/series.json" >/dev/null || \
+    die 'the Romulus QSPI patch must include the complete integrated SPI-HID replacement'
+grep -Fq 'CONFIG_SPI_HID=m' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
+    die 'the integrated SPI-HID module must be enabled for AArch64'
+if grep -Eq 'CONFIG_SPI_HID_(ACPI|CORE|OF)=' "$PROJECT_ROOT/scripts/build-kernel.sh"; then
+    die 'obsolete split SPI-HID kernel options must not be configured'
+fi
+grep -Fq 'for module in spi-hid.ko; do' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
+    die 'the kernel build must verify the integrated SPI-HID module'
+grep -Fq '%meson -Ddebug_tools=calibrate' "$PROJECT_ROOT/packages/iptsd-sl7/iptsd-sl7.spec" || \
+    die 'IPTSD must build the SL7 calibration utility'
+grep -Fq '%{_bindir}/iptsd-calibrate' "$PROJECT_ROOT/packages/iptsd-sl7/iptsd-sl7.spec" || \
+    die 'IPTSD must package the SL7 calibration utility'
+grep -Fq "grep -Fq 'qcom,geni-spi-qspi'" "$PROJECT_ROOT/scripts/inspect-iso.sh" || \
+    die 'ISO inspection must verify the Romulus QSPI controller'
+grep -Fq "grep -Fq 'hid-over-spi'" "$PROJECT_ROOT/scripts/inspect-iso.sh" || \
+    die 'ISO inspection must verify the Romulus SPI-HID touchpad'
 
 jq -e '
   .schema == 1 and

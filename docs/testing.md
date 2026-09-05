@@ -19,9 +19,10 @@ signature decisions, PnPUtil XML filtering, and firmware completeness. Linux
 synthetic.
 
 Release CI additionally builds the full AArch64 base and verifies EFI boot
-files, both DTBs and identifiers, patched and fallback kernels, contiguous slot
-extents, the fail-closed GRUB entry, Anaconda persistence integration, and the
-absence of Microsoft firmware.
+files, both DTBs and identifiers, the Romulus QSPI and SPI-HID nodes, the
+integrated SPI-HID kernel module, the IPTSD calibration utility, patched and
+fallback kernels, contiguous slot extents, the fail-closed GRUB entry, Anaconda
+persistence integration, and the absence of Microsoft firmware.
 
 The QEMU test is only a userspace boot smoke test. It cannot validate Surface
 UEFI, GPU firmware, input devices, radio, battery, USB resume, camera, or
@@ -46,3 +47,24 @@ firmware source, personalized ISO hash, and kernel. Remove personal identifiers.
 Submit `hardware-tests/template.json` with sanitized logs. The 15-inch release
 remains experimental until this checklist passes; the 13.8-inch model requires
 accepted community evidence.
+
+### Touchpad diagnostics and calibration
+
+Confirm that the kernel transport created an IPTS touchpad before calibrating:
+
+```bash
+sudo iptsd-foreach -t touchpad -- echo '{}'
+```
+
+If the command prints a `/dev/hidrawN` device but contacts are missed or
+mis-sized, stop its daemon instance and run the packaged calibration utility:
+
+```bash
+sudo iptsd-systemd -t touchpad -- stop
+sudo iptsd-calibrate /dev/hidrawN
+sudo iptsd-systemd -t touchpad -- restart
+```
+
+Calibration creates candidate configuration snippets in the current directory.
+Review the reported ranges before explicitly copying the recommended snippet to
+`/etc/iptsd.d/`; do not replace the packaged calibration automatically.

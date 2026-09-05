@@ -1,5 +1,5 @@
 Name:           fedora-sl7-remix-support
-Version:        0.2.4
+Version:        0.2.5
 Release:        1%{?dist}
 Summary:        Hardware and personalized-firmware integration for Surface Laptop 7
 License:        GPL-2.0-only AND CC-BY-SA-4.0
@@ -70,6 +70,9 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 %config(noreplace) %{_sysconfdir}/iptsd.d/91-calibration-045E-0C77.conf
 
 %changelog
+* Sat Sep 05 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.5-1
+- Verify the integrated Romulus QSPI touchpad stack and calibration utility
+
 * Wed Sep 02 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.4-1
 - Make the QEMU userspace marker deterministic and skip live kernel selection
 
