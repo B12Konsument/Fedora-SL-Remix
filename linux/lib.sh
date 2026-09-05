@@ -5,7 +5,7 @@
 # is responsible for enabling strict Bash mode.
 
 SL7_REPOSITORY=${SL7_REPOSITORY:-B12Konsument/Fedora-SL-Remix}
-SL7_CUSTOMIZER_VERSION=0.2.5
+SL7_CUSTOMIZER_VERSION=0.2.6
 SL7_MODEL_SLOT_SIZE=4096
 SL7_PERSONALIZATION_SLOT_SIZE=268435456
 SL7_TTY_PATH=${SL7_TTY_PATH:-/dev/tty}
@@ -248,7 +248,7 @@ sl7_fetch_release() {
             jq -e 'map(select(.draft == false)) | first // error("no published release")' >"$destination" ||
             sl7_die 'No published Fedora SL7 Remix release is available.'
     else
-        [[ $requested =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || sl7_die '--release must be latest or a semantic tag such as v0.2.5.'
+        [[ $requested =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || sl7_die '--release must be latest or a semantic tag such as v0.2.6.'
         url="https://api.github.com/repos/$SL7_REPOSITORY/releases/tags/$requested"
         curl -fsSL -H 'Accept: application/vnd.github+json' -H 'User-Agent: Fedora-SL7-Remix-Linux-Personalizer' -- "$url" >"$destination" ||
             sl7_die "Published release '$requested' was not found."

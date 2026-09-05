@@ -20,7 +20,7 @@ jq -e '.base_iso.parts | length == 1' "$fixture/assets/personalization-layout.js
 jq -e '.windows_bundle.name == "windows-customizer.zip"' "$fixture/assets/personalization-layout.json" >/dev/null
 jq -e '.linux_bundle.name == "linux-customizer.tar.gz" and
     .linux_bundle.entrypoint == "linux/new-fedora-sl7-iso.sh" and
-    .linux_bundle.customizer_version == "0.2.5"' "$fixture/assets/personalization-layout.json" >/dev/null
+    .linux_bundle.customizer_version == "0.2.6"' "$fixture/assets/personalization-layout.json" >/dev/null
 tar -tzf "$fixture/assets/linux-customizer.tar.gz" | grep -Fxq 'linux/new-fedora-sl7-iso.sh'
 (cd "$fixture/assets" && sha256sum -c SHA256SUMS --ignore-missing >/dev/null)
 printf 'release split test passed\n'

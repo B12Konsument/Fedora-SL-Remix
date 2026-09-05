@@ -9,7 +9,7 @@ BeforeAll {
             schema = 1
             minimum_customizer_version = '0.2.5'
             fedora_release = 44
-            remix_version = '0.2.5'
+            remix_version = '0.2.6'
             source_lock_sha256 = '1' * 64
             base_iso = [pscustomobject]@{
                 name = 'Fedora-SL7-base.aarch64.iso'

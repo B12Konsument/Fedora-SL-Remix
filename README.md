@@ -106,7 +106,7 @@ extraction.
 The result is named like:
 
 ```text
-Downloads\Fedora-SL7-Remix-44-0.2.5-Romulus15-PRIVATE.aarch64.iso
+Downloads\Fedora-SL7-Remix-44-0.2.6-Romulus15-PRIVATE.aarch64.iso
 ```
 
 A SHA-256 file and a redacted JSON provenance report are written beside it.
