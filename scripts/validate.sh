@@ -86,7 +86,10 @@ grep -Fq 'CONFIG_SPI_HID=m' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
 if grep -Eq 'CONFIG_SPI_HID_(ACPI|CORE|OF)=' "$PROJECT_ROOT/scripts/build-kernel.sh"; then
     die 'obsolete split SPI-HID kernel options must not be configured'
 fi
-grep -Fq 'for module in spi-hid.ko; do' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
+grep -Fq 'required_kernel_modules=(spi-hid.ko)' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
+    die 'the kernel build must list the integrated SPI-HID module'
+# shellcheck disable=SC2016
+grep -Fq 'for module in "${required_kernel_modules[@]}"; do' "$PROJECT_ROOT/scripts/build-kernel.sh" || \
     die 'the kernel build must verify the integrated SPI-HID module'
 grep -Fq '%meson -Ddebug_tools=calibrate' "$PROJECT_ROOT/packages/iptsd-sl7/iptsd-sl7.spec" || \
     die 'IPTSD must build the SL7 calibration utility'

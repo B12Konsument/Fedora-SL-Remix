@@ -159,7 +159,8 @@ rpmbuild -ba "$distgit/kernel.spec" \
 mkdir -p "$BUILD_ROOT/rpms"
 find "$topdir/RPMS" -type f -name '*.rpm' -exec cp -f -- {} "$BUILD_ROOT/rpms/" \;
 
-for module in spi-hid.ko; do
+required_kernel_modules=(spi-hid.ko)
+for module in "${required_kernel_modules[@]}"; do
     found=0
     while IFS= read -r rpm_file; do
         # Do not use grep -q here: with pipefail, its early exit makes rpm(8)
