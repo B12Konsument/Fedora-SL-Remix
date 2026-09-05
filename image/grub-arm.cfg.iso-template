@@ -43,9 +43,9 @@ if [ "$${sl7_personalized}" = "1" ]; then
         }
     }
 else
-    menuentry "Personalize this base image from Windows before booting" {
+    menuentry "Personalize this base image from Windows or Linux before booting" {
         echo "This is a firmware-free Fedora SL7 Remix personalization base."
-        echo "Run the Windows personalizer on a supported Surface Laptop 7 first."
+        echo "Run the Windows or Linux personalizer for a supported Surface Laptop 7 first."
         echo "No disk has been modified. Press Escape to return."
         sleep --interruptible 30
     }

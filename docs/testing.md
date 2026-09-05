@@ -12,6 +12,16 @@ Static checks cover source locks, patch metadata, shell syntax, ShellCheck,
 KIWI XML, RPM specs, the fixed personalization interface, English-only text,
 firmware-manifest validation, release splitting, and Anaconda target copying.
 
+The Linux customizer suite covers Fedora and Arch dependency mapping,
+interactive model selection, all accepted yes/no spellings and retry behavior,
+`/dev/tty` isolation under a pipe, mandatory non-interactive arguments, both
+hardware profiles, layout compatibility, unsafe names, asset and base hashes,
+MSI integrity, missing/ambiguous firmware, CPIO overflow, placeholder hashes,
+slot overlap, no-clobber publication, process-owned cleanup, and a complete
+synthetic personalization. The synthetic base uses a sparse file; no Microsoft
+material or privileged mount enters CI. Dedicated current Fedora and Arch
+container jobs install the documented native packages and run this suite.
+
 Windows CI runs Pester against SKU mapping, unsupported hardware, fixed-size
 selectors, `newc` archive contents, placeholder hashes, overflow rejection,
 signature decisions, PnPUtil XML filtering, and firmware completeness. Linux
@@ -33,7 +43,7 @@ suspend.
 On the target Surface, record the release, SKU, CPU, RAM, UEFI version, Windows
 firmware source, personalized ISO hash, and kernel. Remove personal identifiers.
 
-1. Run the Windows creator and confirm the detected SKU/model and private output.
+1. Run the Windows creator or Linux personalizer and confirm the detected or explicitly selected SKU/model and private output.
 2. Write the ISO and reach the graphical KDE live desktop.
 3. Confirm the expected Romulus DTB.
 4. Install interactively, reboot without USB, and verify firmware persistence.

@@ -54,7 +54,7 @@ jq -n \
     --argjson msi "$msi" \
     '{
       schema:1,
-      minimum_customizer_version:"0.2.4",
+      minimum_customizer_version:"0.2.5",
       fedora_release:44,
       remix_version:$version,
       source_lock_sha256:$source_lock_sha256,
@@ -65,7 +65,8 @@ jq -n \
         Surface_Laptop_7th_Edition_2037:{model:"Romulus15",dtb:"/boot/dtb/fedora-sl7-remix/romulus15.dtb",display_inches:"15"}
       },
       microsoft_msi:$msi,
-      windows_bundle:null
+      windows_bundle:null,
+      linux_bundle:null
     }' > "$output"
 
 jq -e '.schema == 1 and .slots.model_selector.length == 4096 and .slots.personalization.length == 268435456' "$output" >/dev/null

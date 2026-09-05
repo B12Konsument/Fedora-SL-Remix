@@ -72,6 +72,7 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 %changelog
 * Sat Sep 05 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.5-1
 - Verify the integrated Romulus QSPI touchpad stack and calibration utility
+- Add the verified Fedora and Arch Linux private ISO personalizer
 
 * Wed Sep 02 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.4-1
 - Make the QEMU userspace marker deterministic and skip live kernel selection

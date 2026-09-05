@@ -107,8 +107,8 @@ jq -e '
 grep -q '^set default="0"$' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || die 'the personalization guard must be the default GRUB entry'
 grep -Fq 'sl7_personalized="0"' "$PROJECT_ROOT/image/model-selector.placeholder.cfg" || \
     die 'the base model selector must fail closed'
-grep -Fq 'Personalize this base image from Windows before booting' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || \
-    die 'GRUB must explain that the base image requires Windows personalization'
+grep -Fq 'Personalize this base image from Windows or Linux before booting' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template" || \
+    die 'GRUB must explain that the base image requires personalization'
 if grep -Fq 'rd.live.check' "$PROJECT_ROOT/image/grub-arm.cfg.iso-template"; then
     die 'the mutable personalization ISO must not offer the embedded media check'
 fi
