@@ -1,0 +1,48 @@
+From: Fedora SL7 Remix contributors <noreply@example.invalid>
+Subject: [PATCH] HID: spi-hid: integrate the QSPI driver with in-tree Kbuild
+
+The pinned Romulus driver replaces the generic ACPI/OF split driver. Its
+Makefile is for an external module and unconditionally uses obj-m. Respect
+CONFIG_SPI_HID for in-tree builds and declare the SPI, OF and pinctrl
+dependencies used by probe. The driver and device tree must be taken together.
+
+Based-on: https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/cdf898f43cd98bf990ffb059cd0479f94118ac79
+License: GPL-2.0-only
+
+diff --git a/drivers/hid/spi-hid/Kconfig b/drivers/hid/spi-hid/Kconfig
+index acc4e2f..6a5dc95 100644
+--- a/drivers/hid/spi-hid/Kconfig
++++ b/drivers/hid/spi-hid/Kconfig
+@@ -8,6 +8,7 @@
+ 
+ config SPI_HID
+ 	tristate "HID over SPI transport layer"
++	depends on SPI && OF && PINCTRL
+ 	default n
+ 	help
+ 	  Say Y here if you use a keyboard, a touchpad, a touchscreen, or any
+diff --git a/drivers/hid/spi-hid/Makefile b/drivers/hid/spi-hid/Makefile
+index 2d97af0..76eb093 100644
+--- a/drivers/hid/spi-hid/Makefile
++++ b/drivers/hid/spi-hid/Makefile
+@@ -1,16 +1,5 @@
+-ifneq ($(KERNELRELEASE),)
+-obj-m += spi-hid.o
+-spi-hid-objs := spi-hid-core.o
+-else
+-KERNEL_DIR ?= /lib/modules/$(shell uname -r)/build
+-PWD := $(shell pwd)
++# SPDX-License-Identifier: GPL-2.0-only
++# In-tree build for the Romulus QSPI HID transport.
+ 
+-all:
+-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules
+-
+-clean:
+-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) clean
+-
+-install:
+-	$(MAKE) -C $(KERNEL_DIR) M=$(PWD) modules_install
+-endif
++obj-$(CONFIG_SPI_HID) += spi-hid.o
++spi-hid-y := spi-hid-core.o

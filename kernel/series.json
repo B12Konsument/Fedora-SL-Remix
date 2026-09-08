@@ -29,15 +29,17 @@
       "sha256":"19542801c21aca148c9cd3034007194acaae04fe059c1862b5782b739c650ca5",
       "license":"GPL-2.0-only",
       "upstream_status":"downstream-required-for-linux-7.1.10",
-      "purpose":"Enable the Romulus touchpad SPI DMA path",
+      "purpose":"Enable the matched Romulus QSPI touchpad driver, device tree and DMA path",
       "include":[
         "arch/arm64/boot/dts/qcom/x1e80100-microsoft-romulus.dtsi",
         "drivers/dma/qcom/gpi.c",
+        "drivers/hid/spi-hid/*",
         "drivers/spi/spi-geni-qcom.c",
         "include/dt-bindings/dma/qcom-gpi.h",
         "include/linux/dma/qcom-gpi-dma.h"
       ]
     },
+    {"id":"spi-hid-in-tree-build","path":"kernel/patches/0005-spi-hid-in-tree-build.patch","license":"GPL-2.0-only","upstream_status":"project-build-adapter-for-linux-7.1.10","purpose":"Integrate the Romulus QSPI HID driver with in-tree Kbuild and its dependencies"},
     {"id":"spi-geni-fragmentation-fedora-restore","path":"kernel/patches/0003-spi-geni-fragmentation-fedora-restore.patch","license":"GPL-2.0-only","upstream_status":"project-context-adapter-for-linux-7.1.10","purpose":"Restore Fedora SPI-GENI behavior after the compatibility patch"},
     {"id":"romulus-ath12k-enumeration","path":"kernel/patches/0004-ath12k-limit-rfkill-workaround-to-romulus.patch","license":"BSD-3-Clause-Clear","upstream_status":"project-scoped-rebase-for-linux-7.1.10","purpose":"Limit the ath12k Romulus enumeration workaround to SL7 hardware","based_on":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2e8c2d99262435510fb9b1f48f4637a4b9149099"},
     {"id":"hamoa-camera-clock-controller-dt","url":"https://github.com/ProgrammerIn-wonderland/ELLX-Kernel/commit/2467bd57674e.patch","sha256":"054b57d514d25bbaf1e7ec7398d14cad0a0ee05a214ccd50c1939503a730a019","license":"BSD-3-Clause","upstream_status":"ubuntu-sauce-prerequisite-for-romulus-camera","purpose":"Describe the camera clock controller required by Romulus"},

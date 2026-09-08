@@ -6,6 +6,7 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$PROJECT_ROOT/scripts/lib.sh"
 
 require_command dtc
+require_command fdtget
 require_command jq
 require_command losetup
 require_command lsinitrd
@@ -108,6 +109,21 @@ dtc -q -I dtb -O dts -o "$romulus13_dts" "$romulus13" || die 'Romulus 13 DTB is 
 dtc -q -I dtb -O dts -o "$romulus15_dts" "$romulus15" || die 'Romulus 15 DTB is malformed'
 grep -Fq 'microsoft,romulus13' "$romulus13_dts" || die 'Romulus 13 DTB has the wrong hardware identifier'
 grep -Fq 'microsoft,romulus15' "$romulus15_dts" || die 'Romulus 15 DTB has the wrong hardware identifier'
+
+# A model identifier alone also matches the stock fallback DTB, which lacks
+# the QSPI touchpad. Check both the driver contract and kernel provenance.
+sl7_kernel_version=${sl7_kernel##*/vmlinuz-}
+for model in 13 15; do
+    dtb="$iso_mount/boot/dtb/fedora-sl7-remix/romulus$model.dtb"
+    python3 "$PROJECT_ROOT/scripts/check-touchpad-dtb.py" "$dtb"
+    kernel_dtb="$(find "$root/usr/lib/modules/$sl7_kernel_version" -type f \
+        -name "x1e80100-microsoft-romulus$model.dtb" -print -quit)"
+    if [[ -z "$kernel_dtb" ]] || ! cmp -s "$dtb" "$kernel_dtb"; then
+        die "Romulus $model DTB does not match the live SL7 kernel"
+    fi
+done
+find "$root/usr/lib/modules/$sl7_kernel_version" -type f -name 'spi-hid.ko*' -print | \
+    grep . >/dev/null || die 'live SL7 kernel is missing the QSPI HID module'
 
 rpm --root "$root" -q anaconda-install-env-deps anaconda-live \
     fedora-sl7-remix-support iptsd-sl7 sl7-mac \

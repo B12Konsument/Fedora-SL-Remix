@@ -8,6 +8,11 @@ Run from the repository root:
 ./tests/run.sh
 ```
 
+The DTB regression tests require `dtc` and `fdtget` (`dtc` on Fedora,
+`device-tree-compiler` on Debian/Ubuntu). They reject a stock SPI controller
+binding, disabled touchpad ancestors, and missing reset pinctrl states.
+See the [touchpad failure analysis and verification steps](touchpad-fix.md).
+
 Static checks cover source locks, patch metadata, shell syntax, ShellCheck,
 KIWI XML, RPM specs, the fixed personalization interface, English-only text,
 firmware-manifest validation, release splitting, and Anaconda target copying.

@@ -82,13 +82,20 @@ grep -Fqx 'source "drivers/hid/spi-hid/Kconfig"' "$source_tree/drivers/hid/Kconf
 grep -Fqx 'obj-$(CONFIG_SPI_HID)		+= spi-hid/' "$source_tree/drivers/hid/Makefile" || \
     die 'SPI-HID is not connected to the parent Makefile'
 
+# The Romulus patch replaces the old ACPI/OF split driver with one QSPI
+# transport. Keeping only its DT/DMA hunks leaves an incompatible OF driver.
+[[ ! -e "$source_tree/drivers/hid/spi-hid/spi-hid-of.c" ]] || \
+    die 'the incompatible generic SPI-HID OF driver is still present'
+grep -Fq 'HID over SPI (HIDSPI v3) QSPI transport driver' \
+    "$source_tree/drivers/hid/spi-hid/spi-hid-core.c" || \
+    die 'the Romulus QSPI HID transport is missing'
+
 spi_hid_config=(
     CONFIG_SPI_HID=m
-    CONFIG_SPI_HID_ACPI=m
-    CONFIG_SPI_HID_CORE=m
-    CONFIG_SPI_HID_OF=m
 )
 for config in "$distgit"/kernel-*-fedora.config; do
+    # Remove obsolete symbols as well as any existing disabled SPI_HID entry.
+    sed -i '/^CONFIG_SPI_HID\(_ACPI\|_CORE\|_OF\)\?=/d; /^# CONFIG_SPI_HID\(_ACPI\|_CORE\|_OF\)\? is not set$/d' "$config"
     if [[ $(basename "$config") == kernel-aarch64*-fedora.config ]]; then
         for option in "${spi_hid_config[@]}"; do
             key=${option%%=*}
@@ -100,8 +107,8 @@ for config in "$distgit"/kernel-*-fedora.config; do
     fi
 done
 
-sed -i 's/^# define buildid \.local$/%define buildid .sl7.1/' "$distgit/kernel.spec"
-grep -q '^%define buildid \.sl7\.1$' "$distgit/kernel.spec" || die 'could not set the SL7 kernel build ID'
+sed -i 's/^# define buildid \.local$/%define buildid .sl7.2/' "$distgit/kernel.spec"
+grep -q '^%define buildid \.sl7\.2$' "$distgit/kernel.spec" || die 'could not set the SL7 kernel build ID'
 
 if ((prepare_only)); then
     log 'Kernel source and patch queue prepared successfully'
@@ -138,7 +145,7 @@ rpmbuild -ba "$distgit/kernel.spec" \
 mkdir -p "$BUILD_ROOT/rpms"
 find "$topdir/RPMS" -type f -name '*.rpm' -exec cp -f -- {} "$BUILD_ROOT/rpms/" \;
 
-for module in spi-hid.ko spi-hid-acpi.ko spi-hid-of.ko; do
+for module in spi-hid.ko spi-geni-qcom.ko gpi.ko uinput.ko; do
     found=0
     while IFS= read -r rpm_file; do
         # Do not use grep -q here: with pipefail, its early exit makes rpm(8)

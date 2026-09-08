@@ -45,3 +45,8 @@ do not select a different DTB.
 
 Update this table only from a completed report in `hardware-tests/`. QEMU does
 not prove physical compatibility.
+
+A 15-inch Snapdragon X Elite user reported a nonfunctional touchpad in both
+the live ISO and installed system. The [source analysis and fix](touchpad-fix.md)
+address an incompatible SPI-HID/device-tree pairing and ambiguous ISO DTB
+selection. Physical verification of the corrected build is still pending.
