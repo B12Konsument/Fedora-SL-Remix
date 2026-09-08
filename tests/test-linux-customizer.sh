@@ -68,7 +68,7 @@ zero_hash=$(printf '' | sha256sum | cut -d' ' -f1)
 jq -n \
     --arg base_hash "$zero_hash" --arg part_hash "$zero_hash" --arg msi_hash "$zero_hash" \
     --arg bundle_hash "$zero_hash" --argjson base_size "$base_size" '{
-      schema:1,minimum_customizer_version:"0.2.5",fedora_release:44,remix_version:"0.2.5",
+      schema:1,minimum_customizer_version:"0.2.5",fedora_release:44,remix_version:"0.2.6",
       source_lock_sha256:("1" * 64),
       base_iso:{name:"base.iso",size:$base_size,sha256:$base_hash,parts:[{name:"base.iso.part-000",size:$base_size,sha256:$part_hash}]},
       slots:{
@@ -78,10 +78,10 @@ jq -n \
         Surface_Laptop_7th_Edition_2036:{model:"Romulus13",dtb:"/boot/dtb/fedora-sl7-remix/romulus13.dtb",display_inches:"13.8"},
         Surface_Laptop_7th_Edition_2037:{model:"Romulus15",dtb:"/boot/dtb/fedora-sl7-remix/romulus15.dtb",display_inches:"15"}},
       microsoft_msi:{filename:"SurfaceLaptop7.msi",version:"test",url:"https://download.microsoft.com/test/SurfaceLaptop7.msi",size:1,sha256:$msi_hash},
-      linux_bundle:{name:"linux-customizer.tar.gz",size:123,sha256:$bundle_hash,minimum_customizer_version:"0.2.5",customizer_version:"0.2.5",entrypoint:"linux/new-fedora-sl7-iso.sh"}
+      linux_bundle:{name:"linux-customizer.tar.gz",size:123,sha256:$bundle_hash,minimum_customizer_version:"0.2.6",customizer_version:"0.2.6",entrypoint:"linux/new-fedora-sl7-iso.sh"}
     }' >"$fixture/layout.json"
 jq -n --argjson base_size "$base_size" '{
-      tag_name:"v0.2.5",draft:false,assets:[
+      tag_name:"v0.2.6",draft:false,assets:[
         {name:"base.iso.part-000",size:$base_size,browser_download_url:"https://example.invalid/base"},
         {name:"linux-customizer.tar.gz",size:123,browser_download_url:"https://example.invalid/bundle"},
         {name:"personalization-layout.json",size:1,browser_download_url:"https://example.invalid/layout"}]}' >"$fixture/release.json"
@@ -187,17 +187,17 @@ e2e_url=${e2e// /%20}
 jq -n \
     --arg base_hash "$base_hash" --arg selector_hash "$selector_placeholder" --arg payload_hash "$payload_placeholder" \
     --arg msi_hash "$msi_hash" --arg bundle_hash "$bundle_hash" --argjson msi_size "$msi_size" --argjson bundle_size "$bundle_size" '{
-      schema:1,minimum_customizer_version:"0.2.5",fedora_release:44,remix_version:"0.2.5",source_lock_sha256:("1"*64),
+      schema:1,minimum_customizer_version:"0.2.5",fedora_release:44,remix_version:"0.2.6",source_lock_sha256:("1"*64),
       base_iso:{name:"synthetic-base.iso",size:268443648,sha256:$base_hash,parts:[{name:"synthetic-base.part-000",size:268443648,sha256:$base_hash}]},
       slots:{model_selector:{path:"/boot/sl7/model.cfg",offset:0,length:4096,placeholder_sha256:$selector_hash},personalization:{path:"/boot/sl7/personalization.cpio",offset:4096,length:268435456,placeholder_sha256:$payload_hash}},
       hardware:{Surface_Laptop_7th_Edition_2036:{model:"Romulus13",dtb:"/boot/dtb/fedora-sl7-remix/romulus13.dtb",display_inches:"13.8"},Surface_Laptop_7th_Edition_2037:{model:"Romulus15",dtb:"/boot/dtb/fedora-sl7-remix/romulus15.dtb",display_inches:"15"}},
       microsoft_msi:{filename:"Synthetic.msi",version:"test-only",url:"https://download.microsoft.com/synthetic",size:$msi_size,sha256:$msi_hash},
-      linux_bundle:{name:"linux-customizer.tar.gz",size:$bundle_size,sha256:$bundle_hash,minimum_customizer_version:"0.2.5",customizer_version:"0.2.5",entrypoint:"linux/new-fedora-sl7-iso.sh"}}
+      linux_bundle:{name:"linux-customizer.tar.gz",size:$bundle_size,sha256:$bundle_hash,minimum_customizer_version:"0.2.6",customizer_version:"0.2.6",entrypoint:"linux/new-fedora-sl7-iso.sh"}}
     ' >"$e2e/layout.json"
 layout_size=$(stat -c %s "$e2e/layout.json")
 jq -n \
     --arg base "file://$e2e_url/base.iso" --arg bundle "file://$e2e_url/linux-customizer.tar.gz" \
-    --arg layout "file://$e2e_url/layout.json" --argjson bundle_size "$bundle_size" --argjson layout_size "$layout_size" '{tag_name:"v0.2.5",draft:false,assets:[
+    --arg layout "file://$e2e_url/layout.json" --argjson bundle_size "$bundle_size" --argjson layout_size "$layout_size" '{tag_name:"v0.2.6",draft:false,assets:[
       {name:"synthetic-base.part-000",size:268443648,browser_download_url:$base},
       {name:"linux-customizer.tar.gz",size:$bundle_size,browser_download_url:$bundle},
       {name:"personalization-layout.json",size:$layout_size,browser_download_url:$layout}]}' >"$e2e/release.json"
@@ -206,7 +206,7 @@ jq '.slots.personalization.placeholder_sha256=("f"*64)' "$e2e/layout.json" >"$e2
 expect_failure 'placeholder hash' env PATH="$e2e/fakebin:$PATH" HOME="$e2e/home" TMPDIR="$e2e/tmp" \
     XDG_CACHE_HOME="$e2e/cache" SL7_OS_RELEASE="$fixture/fedora-os-release" SL7_RELEASE_JSON="$e2e/release.json" \
     SL7_BOOTSTRAP_LAYOUT="$e2e/bad-layout.json" SL7_TEST_EXTRACT_SOURCE="$e2e/firmware" \
-    "$root/linux/new-fedora-sl7-iso.sh" --non-interactive --release v0.2.5 --model romulus15 \
+    "$root/linux/new-fedora-sl7-iso.sh" --non-interactive --release v0.2.6 --model romulus15 \
     --firmware-source msi --msi-path "$e2e/source.msi" --output-dir "$e2e/output" --keep-cache
 if find "$e2e/output" -maxdepth 1 -name '*.partial.*' -print -quit | grep -q .; then
     fail 'failed customization left its process-owned partial ISO behind'
@@ -215,9 +215,9 @@ fi
 env PATH="$e2e/fakebin:$PATH" HOME="$e2e/home" TMPDIR="$e2e/tmp" \
     XDG_CACHE_HOME="$e2e/cache" SL7_OS_RELEASE="$fixture/fedora-os-release" SL7_RELEASE_JSON="$e2e/release.json" \
     SL7_BOOTSTRAP_LAYOUT="$e2e/layout.json" SL7_TEST_EXTRACT_SOURCE="$e2e/firmware" \
-    "$root/linux/new-fedora-sl7-iso.sh" --non-interactive --release v0.2.5 --model romulus15 \
+    "$root/linux/new-fedora-sl7-iso.sh" --non-interactive --release v0.2.6 --model romulus15 \
     --firmware-source msi --msi-path "$e2e/source.msi" --output-dir "$e2e/output" --keep-cache >/dev/null
-final_iso=$e2e/output/Fedora-SL7-Remix-44-0.2.5-Romulus15-PRIVATE.aarch64.iso
+final_iso=$e2e/output/Fedora-SL7-Remix-44-0.2.6-Romulus15-PRIVATE.aarch64.iso
 [[ -f $final_iso && -f $final_iso.sha256 && -f $final_iso.json ]] || fail 'end-to-end outputs'
 (cd "$e2e/output" && sha256sum -c "$(basename -- "$final_iso").sha256" >/dev/null)
 jq -e '.model == "Romulus15" and .redistributable == false and (.firmware | length == 10)' "$final_iso.json" >/dev/null

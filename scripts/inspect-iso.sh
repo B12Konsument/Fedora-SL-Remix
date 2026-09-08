@@ -95,6 +95,7 @@ cmp -s "$boot_kernel" "$sl7_kernel" || \
 
 [[ -x "$root/usr/bin/sl7-firmware" ]] || die 'live root is missing sl7-firmware'
 [[ -x "$root/usr/bin/sl7-detect" ]] || die 'live root is missing sl7-detect'
+[[ -x "$root/usr/bin/iptsd-calibrate" ]] || die 'live root is missing iptsd-calibrate'
 [[ -x "$root/usr/libexec/sl7-apply-personalization" ]] || die 'live root is missing the personalization installer'
 [[ -f "$root/usr/share/anaconda/post-scripts/95-sl7-personalization.ks" ]] || \
     die 'live root is missing the Anaconda personalization handoff'
@@ -109,6 +110,12 @@ dtc -q -I dtb -O dts -o "$romulus13_dts" "$romulus13" || die 'Romulus 13 DTB is 
 dtc -q -I dtb -O dts -o "$romulus15_dts" "$romulus15" || die 'Romulus 15 DTB is malformed'
 grep -Fq 'microsoft,romulus13' "$romulus13_dts" || die 'Romulus 13 DTB has the wrong hardware identifier'
 grep -Fq 'microsoft,romulus15' "$romulus15_dts" || die 'Romulus 15 DTB has the wrong hardware identifier'
+for romulus_dts in "$romulus13_dts" "$romulus15_dts"; do
+    grep -Fq 'qcom,geni-spi-qspi' "$romulus_dts" || \
+        die "Romulus DTB is missing the QSPI controller: $romulus_dts"
+    grep -Fq 'hid-over-spi' "$romulus_dts" || \
+        die "Romulus DTB is missing the SPI-HID touchpad: $romulus_dts"
+done
 
 # A model identifier alone also matches the stock fallback DTB, which lacks
 # the QSPI touchpad. Check both the driver contract and kernel provenance.
