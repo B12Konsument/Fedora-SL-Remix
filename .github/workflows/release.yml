@@ -20,10 +20,22 @@ jobs:
     runs-on: ubuntu-24.04
     timeout-minutes: 20
     steps:
-      - name: Check out the tagged source
+      - name: Check out the selected source commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
+      - name: Check the release version and unused tag before building
+        env:
+          RELEASE_TAG: ${{ inputs.tag }}
+        run: |
+          test "$RELEASE_TAG" = "v$(cat VERSION)"
+          if git ls-remote --exit-code --tags origin "refs/tags/$RELEASE_TAG"; then
+            echo "Tag $RELEASE_TAG already exists. Use a new project version and let this workflow create its tag and release." >&2
+            exit 1
+          elif test "$?" -ne 2; then
+            echo "Could not verify that tag $RELEASE_TAG is unused" >&2
+            exit 1
+          fi
       - name: Install validation tools
         run: sudo apt-get update && sudo apt-get install -y cpio device-tree-compiler jq libxml2-utils ripgrep shellcheck unzip zip
       - name: Run repository and Linux personalizer tests
@@ -36,7 +48,7 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 15
     steps:
-      - name: Check out the tagged source
+      - name: Check out the selected source commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}
@@ -51,7 +63,7 @@ jobs:
     runs-on: ubuntu-24.04-arm
     timeout-minutes: 360
     steps:
-      - name: Check out the tagged source
+      - name: Check out the selected source commit
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
         with:
           ref: ${{ github.sha }}

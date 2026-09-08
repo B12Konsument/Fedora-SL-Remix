@@ -9,6 +9,16 @@ require_command jq
 require_command rg
 require_command xmllint
 
+project_version=$(<"$PROJECT_ROOT/VERSION")
+[[ $project_version =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]] || die 'VERSION must contain a semantic version'
+[[ $(sed -n 's/^Version:[[:space:]]*//p' "$PROJECT_ROOT/packages/sl7-support/fedora-sl7-remix-support.spec") == "$project_version" ]] || \
+    die 'the support RPM version must match VERSION'
+grep -Fqx "SL7_CUSTOMIZER_VERSION=$project_version" "$PROJECT_ROOT/linux/lib.sh" || \
+    die 'the Linux customizer version must match VERSION'
+jq -e --arg version "$project_version" '.project_version == $version' \
+    "$PROJECT_ROOT/hardware-tests/template.json" >/dev/null || \
+    die 'the hardware report template version must match VERSION'
+
 jq -e '
   .schema == 1 and
   .fedora_release == 44 and

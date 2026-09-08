@@ -46,7 +46,9 @@ be removed.
 
 ## Release preparation
 
-Tag CI first runs repository, Linux, and native Windows tests. It then builds
+The manually dispatched release workflow first checks that the requested tag
+matches `VERSION` and does not already exist, then runs repository, Linux, and
+native Windows tests. It then builds
 the base on AArch64, inspects the mounted live filesystem, runs a QEMU smoke
 test, splits the ISO below 1.9 GiB, packages the PowerShell and Bash files, and
 finalizes `personalization-layout.json` with part and bundle sizes, hashes,
@@ -60,6 +62,36 @@ it applies only to future releases. Maintainers dispatch the release workflow
 with the exact `v<contents-of-VERSION>` tag. The workflow creates that tag only
 after validation, image build, QEMU smoke testing, and asset verification, and
 refuses any tag name that already exists.
+
+### Publish a release from GitHub Actions
+
+1. Update `VERSION`, the support RPM version and changelog, the Linux
+   `SL7_CUSTOMIZER_VERSION`, the hardware-report template, and the versioned
+   examples and test fixtures. Run `./tests/run.sh`, commit, and push `main`.
+2. Open **Actions > Build experimental AArch64 release > Run workflow**.
+   Select branch **main** and enter **v0.2.7** for the current version.
+3. Start the workflow and wait for the entire run to succeed. Repository
+   checks alone do not build or publish the live ISO.
+4. Open **Releases** and confirm the workflow published the new prerelease
+   with ISO parts, `personalization-layout.json`, `linux-customizer.tar.gz`,
+   `windows-customizer.zip`, `SHA256SUMS`, and the build manifests.
+5. Run the normal Windows or Linux command from the README. It selects the
+   newest published release, including prereleases. For a 15-inch Surface,
+   select Romulus15 when using the Linux creator, write the new private ISO
+   to USB, and boot it. `uname -r` should contain `.sl7.2` for this touchpad fix.
+
+Do not create the tag with `git tag` or publish through **Draft a new release**
+before running the workflow. That only publishes a source snapshot; it does
+not trigger this project's ISO build. The workflow creates the tag and release
+after the build and checks succeed. Keep experimental releases as prereleases
+until the physical checklist passes.
+
+If a release was already published without its assets, use a new version:
+immutable published releases cannot have the missing assets added afterward,
+and this workflow refuses to reuse their tags. Version 0.2.7 is prepared to
+replace the incomplete v0.2.6 release. Until the complete replacement is
+published, the normal bootstrap still selects v0.2.6 and stops because its
+personalization layout is missing. Older ISO files do not contain the fix.
 
 ## Linux personalization hosts
 
