@@ -13,6 +13,13 @@ The DTB regression tests require `dtc` and `fdtget` (`dtc` on Fedora,
 binding, disabled touchpad ancestors, and missing reset pinctrl states.
 See the [touchpad failure analysis and verification steps](touchpad-fix.md).
 
+The KIWI preparation and personalization-base tests additionally require
+`rsync` and `xorriso`. They verify that SL7 configuration runs before Fedora's
+terminal `exit 0`, then build and read back a synthetic ISO with both stock and
+patched kernel DTBs present. Missing, stale, ambiguous, or incompatible DTBs
+must be rejected before the output ISO is written. No mounts or firmware are
+used in these tests.
+
 Static checks cover source locks, patch metadata, shell syntax, ShellCheck,
 KIWI XML, RPM specs, the fixed personalization interface, English-only text,
 firmware-manifest validation, release splitting, and Anaconda target copying.

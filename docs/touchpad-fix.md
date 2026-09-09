@@ -74,6 +74,27 @@ format and Windows/Linux firmware extraction are unchanged.
 No replacement ISO or kernel RPM set was built in this analysis. Final ISO
 inspection, a complete release build and physical validation remain necessary.
 
+### Release-build follow-up
+
+The [first v0.2.7 release run](https://github.com/B12Konsument/Fedora-SL-Remix/actions/runs/34280139730)
+passed repository and Windows tests and built the patched kernel RPMs and KIWI
+ISO. Final ISO inspection correctly rejected a Romulus DTB without the QSPI
+controller. The xorriso log identified the source as the stock
+`7.1.10-200.fc44.aarch64` module directory.
+
+Two integration gaps remained: `prepare-personalization-base.sh` repeated the
+unrestricted DTB search when rewriting the ISO, and `prepare-kiwi.sh` appended
+the SL7 configuration after Fedora's terminal `exit 0`, making it unreachable.
+The latter also skipped the SL7 service-enabling and image-branding commands.
+
+KIWI preparation now inserts the integration before the final exit and rejects
+an unexpected upstream script layout. ISO personalization uses the staged DTBs
+under `/boot/dtb/fedora-sl7-remix`, checks that they match the single patched
+kernel, and validates QSPI support before invoking xorriso. Regression tests
+execute the generated config and read both DTBs back from a real synthetic ISO;
+both tests reproduce failures with the old scripts and pass with the fixes.
+The complete release workflow and physical boot must still be rerun.
+
 ## Deployment and physical verification
 
 Build a new base with the corrected kernel, then create a new private ISO.

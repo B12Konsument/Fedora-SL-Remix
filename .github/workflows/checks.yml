@@ -15,7 +15,7 @@ jobs:
       - name: Check out the repository
         uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683
       - name: Install validation tools
-        run: sudo apt-get update && sudo apt-get install -y cpio device-tree-compiler jq libxml2-utils ripgrep shellcheck zip
+        run: sudo apt-get update && sudo apt-get install -y cpio device-tree-compiler jq libxml2-utils ripgrep rsync shellcheck xorriso zip
       - name: Validate repository inputs
         env:
           REQUIRE_PWSH: "1"

@@ -6,8 +6,11 @@ PROJECT_ROOT="$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/.." && pwd -P)"
 source "$PROJECT_ROOT/scripts/lib.sh"
 
 require_command cpio
+require_command cmp
 require_command dd
+require_command fdtget
 require_command od
+require_command python3
 require_command sha256sum
 require_command truncate
 require_command xorriso
@@ -47,9 +50,23 @@ if [[ ! -d "$image_root" ]]; then
     image_root="$(find "$BUILD_ROOT/kiwi-output" -type d -path '*/build/image-root' -print -quit)"
 fi
 [[ -n "$image_root" && -d "$image_root" ]] || die 'could not locate the KIWI image root'
-romulus13="$(find "$image_root/usr/lib/modules" -type f -name 'x1e80100-microsoft-romulus13.dtb' -print -quit)"
-romulus15="$(find "$image_root/usr/lib/modules" -type f -name 'x1e80100-microsoft-romulus15.dtb' -print -quit)"
-[[ -n "$romulus13" && -n "$romulus15" ]] || die 'could not locate both Romulus DTBs in the KIWI image root'
+# Use the DTBs staged by config-sl7.sh, never a traversal across both the
+# patched and recovery kernels. Verify their provenance before rewriting ISO.
+mapfile -t sl7_kernels < <(find "$image_root/boot" -maxdepth 1 -type f -name 'vmlinuz-*.sl7.*' -print)
+[[ ${#sl7_kernels[@]} -eq 1 ]] || die 'expected exactly one patched SL7 kernel in the KIWI image root'
+sl7_kernel_version=${sl7_kernels[0]##*/vmlinuz-}
+romulus13="$image_root/boot/dtb/fedora-sl7-remix/romulus13.dtb"
+romulus15="$image_root/boot/dtb/fedora-sl7-remix/romulus15.dtb"
+for model in 13 15; do
+    dtb="$image_root/boot/dtb/fedora-sl7-remix/romulus$model.dtb"
+    [[ -f "$dtb" ]] || die "staged Romulus $model DTB is missing; check KIWI config-sl7.sh integration"
+    kernel_dtb="$(find "$image_root/usr/lib/modules/$sl7_kernel_version" -type f \
+        -name "x1e80100-microsoft-romulus$model.dtb" -print -quit)"
+    if [[ -z "$kernel_dtb" ]] || ! cmp -s "$dtb" "$kernel_dtb"; then
+        die "staged Romulus $model DTB does not match the patched SL7 kernel"
+    fi
+    python3 "$PROJECT_ROOT/scripts/check-touchpad-dtb.py" "$dtb"
+done
 
 log 'Adding fixed personalization slots and both Romulus DTBs to the ISO'
 xorriso \
