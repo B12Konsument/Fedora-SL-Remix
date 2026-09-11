@@ -134,7 +134,32 @@ find "$root/usr/lib/modules/$sl7_kernel_version" -type f -name 'spi-hid.ko*' -pr
 
 rpm --root "$root" -q anaconda-install-env-deps anaconda-live \
     fedora-sl7-remix-support iptsd-sl7 sl7-mac \
+    atheros-firmware qcom-firmware alsa-ucm bluez pipewire wireplumber \
     kernel-uki-dtbloader >/dev/null || die 'live root is missing a required RPM'
+
+# Check files as well as RPM names: firmware splitting and packaging paths
+# must not silently leave a radio or the audio DSP without its runtime input.
+for firmware in \
+    ath12k/WCN7850/hw2.0/amss.bin \
+    ath12k/WCN7850/hw2.0/m3.bin \
+    ath12k/WCN7850/hw2.0/board-2.bin \
+    qca/hmtbtfw20.tlv qca/hmtnv20.bin \
+    qcom/x1e80100/X1E80100-Romulus-tplg.bin; do
+    found=0
+    for suffix in '' .xz .zst; do
+        [[ -s "$root/usr/lib/firmware/$firmware$suffix" ]] && found=1
+    done
+    ((found)) || die "live root is missing required firmware: $firmware"
+done
+[[ -s "$root/usr/share/alsa/ucm2/Qualcomm/x1e80100/x1e80100.conf" ]] || \
+    die 'live root is missing the X1E80100 UCM profile selector'
+[[ -s "$root/usr/share/alsa/ucm2/Qualcomm/x1e80100/LENOVO-T14s.conf" ]] || \
+    die 'live root is missing the shared Romulus UCM profile'
+# Read the literal shell default; do not expand it in the inspection process.
+# shellcheck disable=SC2016
+helper=$(sed -n 's/^MGMT_HELPER=${SL7_MAC_HELPER:-\(.*\)}$/\1/p' "$root/usr/bin/sl7-mac")
+[[ $helper == /usr/libexec/sl7-mac/mgmt-set-addr.py && -x "$root$helper" ]] || \
+    die 'the Bluetooth address helper does not match its packaged runtime path'
 kernel_packages="$work/kernel-packages.txt"
 rpm --root "$root" -qa 'kernel*' > "$kernel_packages" || die 'could not query the live root kernel packages'
 grep -q '[.]sl7[.]' "$kernel_packages" || die 'live root is missing the Fedora SL7 kernel packages'

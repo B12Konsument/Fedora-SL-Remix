@@ -2,6 +2,12 @@
 
 ## Report and scope
 
+Follow-up on 2026-09-11: the user reports that the touchpad works in the latest
+release and still needs calibration after installation. Haptics and resume
+have not been separately confirmed. The original failure analysis follows;
+see [testing](testing.md#touchpad-diagnostics-and-calibration) for calibration
+and [radio/audio](radio-audio.md) for the newly reported failures.
+
 The touchpad was reported nonfunctional in both the live ISO and the installed
 system on a Surface Laptop 7 15-inch with Snapdragon X Elite (Romulus 15).
 The ISO version, running kernel and device logs were not supplied. The source

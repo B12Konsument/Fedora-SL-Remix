@@ -625,9 +625,9 @@ function New-Sl7PersonalizationCpio {
         [Parameter(Mandatory = $true)][string]$OutputPath
     )
     $entries = New-Object System.Collections.Generic.List[object]
-    $early = 'qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn'
-    $entries.Add([pscustomobject]@{ Path = "usr/lib/firmware/updates/$early"; Source = $FirmwareFiles[$early] })
     foreach ($relative in $script:RequiredFirmware) {
+        # Remote processors can probe in the initramfs, before live services.
+        $entries.Add([pscustomobject]@{ Path = "usr/lib/firmware/updates/$relative"; Source = $FirmwareFiles[$relative] })
         $entries.Add([pscustomobject]@{ Path = "sl7-personalization/firmware/$relative"; Source = $FirmwareFiles[$relative] })
     }
     $entries.Add([pscustomobject]@{ Path = 'sl7-personalization/manifest.json'; Source = $ManifestPath })

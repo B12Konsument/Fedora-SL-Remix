@@ -413,9 +413,11 @@ sl7_create_cpio() {
         target="$staging/sl7-personalization/firmware/$relative"
         mkdir -p -- "$(dirname -- "$target")"
         cp -- "$source" "$target"
+        # Remote processors can probe in the initramfs, before live services.
+        target="$staging/usr/lib/firmware/updates/$relative"
+        mkdir -p -- "$(dirname -- "$target")"
+        cp -- "$source" "$target"
     done <"$firmware_map"
-    source=$(awk -F '\t' '$1 == "qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn" {print $2}' "$firmware_map")
-    cp -- "$source" "$staging/usr/lib/firmware/updates/qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn"
     cp -- "$manifest" "$staging/sl7-personalization/manifest.json"
     find "$staging" -type d -exec chmod 0755 {} +
     find "$staging" -type f -exec chmod 0644 {} +

@@ -1,6 +1,6 @@
 Name:           fedora-sl7-remix-support
 Version:        0.2.7
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Hardware and personalized-firmware integration for Surface Laptop 7
 License:        GPL-2.0-only AND CC-BY-SA-4.0
 URL:            https://github.com/B12Konsument/Fedora-SL-Remix
@@ -70,6 +70,9 @@ install -Dm0644 VERSION %{buildroot}%{_datadir}/fedora-sl7-remix/VERSION
 %config(noreplace) %{_sysconfdir}/iptsd.d/91-calibration-045E-0C77.conf
 
 %changelog
+* Fri Sep 11 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.7-2
+- Make private DSP firmware available before live-root device probing
+
 * Tue Sep 08 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 0.2.7-1
 - Prepare the complete touchpad-fix release after the incomplete v0.2.6 publication
 

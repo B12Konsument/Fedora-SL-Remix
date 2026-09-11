@@ -27,7 +27,11 @@ mkdir "$fixture/extracted"
     cd "$fixture/extracted"
     cpio --quiet -id < "$archive"
 )
-test -s "$fixture/extracted/usr/lib/firmware/updates/qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn"
-test -s "$fixture/extracted/sl7-personalization/firmware/qcom/x1e80100/microsoft/Romulus/qccdsp8380.mbn"
+while IFS= read -r -d '' payload; do
+    relative=${payload#"$fixture/extracted/sl7-personalization/firmware/"}
+    test -s "$payload"
+    cmp "$payload" "$fixture/extracted/usr/lib/firmware/updates/$relative"
+done < <(find "$fixture/extracted/sl7-personalization/firmware" -type f -print0)
+[[ $(find "$fixture/extracted/usr/lib/firmware/updates" -type f | wc -l) -eq 10 ]]
 grep -Fq 'synthetic-test-only' "$fixture/extracted/sl7-personalization/manifest.json"
 printf 'Windows CPIO cross-check passed\n'

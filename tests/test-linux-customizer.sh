@@ -121,10 +121,22 @@ sl7_create_manifest "$(sl7_model_json romulus15)" SyntheticMsi test "$fixture/ma
 sl7_create_cpio "$fixture/map.tsv" "$fixture/manifest.json" "$fixture/cpio-valid" "$fixture/valid.cpio" 1048576
 mkdir "$fixture/cpio-extracted"
 (cd "$fixture/cpio-extracted" && cpio -id --quiet <"$fixture/valid.cpio")
-[[ -f $fixture/cpio-extracted/usr/lib/firmware/updates/qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn ]] || fail 'early GPU firmware path in CPIO'
-[[ -f $fixture/cpio-extracted/sl7-personalization/firmware/qcom/x1e80100/microsoft/Romulus/qccdsp8380.mbn ]] || fail 'persistent firmware path in CPIO'
+for relative in "${SL7_REQUIRED_FIRMWARE[@]}"; do
+    cmp "$firmware_root/a/${relative##*/}" "$fixture/cpio-extracted/usr/lib/firmware/updates/$relative" || fail "early firmware content: $relative"
+    cmp "$firmware_root/a/${relative##*/}" "$fixture/cpio-extracted/sl7-personalization/firmware/$relative" || fail "persistent firmware content: $relative"
+done
 jq -e '.model == "Romulus15" and .msi_version == "test" and (.files | length == 10)' \
     "$fixture/cpio-extracted/sl7-personalization/manifest.json" >/dev/null
+
+# Run the real pre-pivot hook against the extracted archive. Firmware must
+# survive switch_root without waiting for sl7-personalize-live.service.
+mkdir "$fixture/live-root"
+SL7_PERSONALIZATION_ROOT="$fixture/cpio-extracted/sl7-personalization" NEWROOT="$fixture/live-root" \
+    source "$root/image/root/usr/lib/dracut/modules.d/95sl7-personalization/sl7-personalization-copy.sh"
+for relative in "${SL7_REQUIRED_FIRMWARE[@]}"; do
+    cmp "$firmware_root/a/${relative##*/}" "$fixture/live-root/usr/lib/firmware/updates/$relative" || fail "live firmware before coldplug: $relative"
+done
+cmp "$fixture/manifest.json" "$fixture/live-root/run/sl7-personalization/manifest.json"
 [[ $(stat -c %a "$fixture/cpio-extracted/sl7-personalization/manifest.json") == 644 ]] || fail 'CPIO file mode'
 expect_failure 'exceeds' sl7_create_cpio "$fixture/map.tsv" "$fixture/manifest.json" "$fixture/cpio-small" "$fixture/too-large.cpio" 1
 

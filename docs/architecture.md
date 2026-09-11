@@ -44,7 +44,7 @@ warned manual override can force the alternate DTB for recovery testing. It
 verifies every release component before opening the ISO for fixed-offset
 writes.
 
-The firmware archive contains the GPU firmware at its early kernel path and a
+The firmware archive contains all ten files at their early kernel paths and a
 complete validated tree under `/sl7-personalization`. It contains a redacted
 manifest with model, SKU, source type, and file hashes; it never records serial
 numbers, network addresses, usernames, or local paths.
@@ -71,10 +71,12 @@ firmware is removed with the process-owned temporary directory.
 
 ## Live and installed firmware
 
-The additional initrd makes display firmware available during early boot. A
-dracut pre-pivot hook copies the private tree to the live root's `/run`.
-`sl7-personalize-live.service` validates every hash and installs the complete
-tree into the live overlay before networking and the display manager.
+The additional initrd makes GPU and DSP firmware available during early boot.
+A dracut pre-pivot hook copies the private tree to the live root's `/run` and
+its firmware into `/usr/lib/firmware/updates` before switching roots. This
+prevents userspace coldplug from racing the later personalization service.
+`sl7-personalize-live.service` validates every hash and restores the firmware's
+SELinux labels before networking and the display manager.
 
 Anaconda does not install that overlay. The support RPM therefore supplies an
 internal Anaconda post script, which validates and copies the same tree into

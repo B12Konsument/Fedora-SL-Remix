@@ -150,6 +150,12 @@ The installed system receives the same firmware and selected SL7 stack through
 an explicit Anaconda post-install handoff. The patched `.sl7` kernel remains the
 default and a pinned Fedora kernel remains available as a recovery entry.
 
+The latest user feedback reports a working touchpad that still needs
+[calibration after installation](docs/testing.md#touchpad-diagnostics-and-calibration).
+Bluetooth, Wi-Fi, and speakers were reported nonfunctional; see the current
+[investigation and diagnostics](docs/radio-audio.md). These are partial
+results, not a completed hardware checklist.
+
 ## Personalization boundary
 
 The patched kernel, DTBs, IPTSD, sl7-mac, Anaconda integration, and all other

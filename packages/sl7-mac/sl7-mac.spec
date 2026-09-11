@@ -1,6 +1,6 @@
 Name:           sl7-mac
 Version:        1.0.0
-Release:        1%{?dist}
+Release:        2%{?dist}
 Summary:        Restore Surface Laptop 7 factory radio addresses
 License:        MIT
 URL:            https://github.com/valeronm/sl7-mac
@@ -19,6 +19,8 @@ Bluetooth addresses early during boot.
 
 %prep
 %autosetup
+# The Debian upstream uses /usr/lib; Fedora installs private helpers in libexec.
+sed -i 's|/usr/lib/sl7-mac/mgmt-set-addr.py|%{_libexecdir}/sl7-mac/mgmt-set-addr.py|' sl7-mac
 
 %build
 
@@ -29,6 +31,13 @@ install -Dm0644 sl7-wifi-mac.service %{buildroot}%{_unitdir}/sl7-wifi-mac.servic
 install -Dm0644 sl7-bt-mac.service %{buildroot}%{_unitdir}/sl7-bt-mac.service
 install -Dm0644 99-sl7-bt-mac.rules %{buildroot}%{_udevrulesdir}/99-sl7-bt-mac.rules
 install -Dm0644 sl7-mac.1 %{buildroot}%{_mandir}/man1/sl7-mac.1
+
+%check
+# Check the packaged script's default against the actual payload, without
+# opening a Bluetooth socket or requiring a physical device during RPM builds.
+helper=$(sed -n 's/^MGMT_HELPER=${SL7_MAC_HELPER:-\(.*\)}$/\1/p' %{buildroot}%{_bindir}/sl7-mac)
+test -n "$helper"
+test -x "%{buildroot}$helper"
 
 %post
 %systemd_post sl7-wifi-mac.service
@@ -50,6 +59,8 @@ install -Dm0644 sl7-mac.1 %{buildroot}%{_mandir}/man1/sl7-mac.1
 %{_mandir}/man1/sl7-mac.1*
 
 %changelog
+* Fri Sep 11 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 1.0.0-2
+- Resolve the Bluetooth address helper at its Fedora installation path
+
 * Wed Aug 26 2026 Fedora SL7 Remix contributors <noreply@example.invalid> - 1.0.0-1
 - Add Fedora packaging for the pinned upstream source
-

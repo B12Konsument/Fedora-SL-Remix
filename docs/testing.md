@@ -33,6 +33,10 @@ slot overlap, no-clobber publication, process-owned cleanup, and a complete
 synthetic personalization. The synthetic base uses a sparse file; no Microsoft
 material or privileged mount enters CI. Dedicated current Fedora and Arch
 container jobs install the documented native packages and run this suite.
+The archive tests compare all ten firmware files at both early and persistent
+paths. The Linux test also runs the pre-pivot hook to verify availability in
+the live root before device probing. The sl7-mac RPM's `%check` verifies that
+the packaged script resolves its Bluetooth helper to an installed file.
 
 Windows CI runs Pester against SKU mapping, unsupported hardware, fixed-size
 selectors, `newc` archive contents, placeholder hashes, overflow rejection,
@@ -45,6 +49,8 @@ files, both DTBs and identifiers, the Romulus QSPI and SPI-HID nodes, the
 integrated SPI-HID kernel module, the IPTSD calibration utility, patched and
 fallback kernels, contiguous slot extents, the fail-closed GRUB entry, Anaconda
 persistence integration, and the absence of Microsoft firmware.
+It also requires the WCN7850 radio firmware, Romulus audio topology and UCM
+profile, and the correctly resolved Bluetooth helper path.
 
 The QEMU test is only a userspace boot smoke test. It cannot validate Surface
 UEFI, GPU firmware, input devices, radio, battery, USB resume, camera, or

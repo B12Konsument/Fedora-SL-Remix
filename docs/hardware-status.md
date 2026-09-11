@@ -49,4 +49,12 @@ not prove physical compatibility.
 A 15-inch Snapdragon X Elite user reported a nonfunctional touchpad in both
 the live ISO and installed system. The [source analysis and fix](touchpad-fix.md)
 address an incompatible SPI-HID/device-tree pairing and ambiguous ISO DTB
-selection. Physical verification of the corrected build is still pending.
+selection.
+
+On 2026-09-11 the user reported that the touchpad works in the latest release,
+with calibration still needed after installation. Bluetooth, Wi-Fi, and
+speakers were reported nonfunctional. The exact running kernel, live versus
+installed behavior, and haptic/resume results were not supplied. This partial
+follow-up supersedes the earlier touchpad failure report but does not qualify
+as a completed checklist or change the verified-status matrix above. See the
+[radio/audio investigation](radio-audio.md).

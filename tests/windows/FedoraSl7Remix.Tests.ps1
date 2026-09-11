@@ -193,7 +193,7 @@ Describe 'Model selector' {
 }
 
 Describe 'newc firmware archive' {
-    It 'includes the early GPU firmware and all private payload paths' {
+    It 'includes GPU and DSP firmware in both early and persistent paths' {
         $fixture = Join-Path $TestDrive 'firmware'
         New-Item -ItemType Directory -Path $fixture | Out-Null
         $files = @{}
@@ -208,8 +208,10 @@ Describe 'newc firmware archive' {
         New-Sl7PersonalizationCpio -FirmwareFiles $files -ManifestPath $manifest -OutputPath $archive | Out-Null
         $bytes = [IO.File]::ReadAllBytes($archive)
         $text = [Text.Encoding]::ASCII.GetString($bytes)
-        $text | Should -Match 'usr/lib/firmware/updates/qcom/x1e80100/microsoft/qcdxkmsuc8380.mbn'
-        $text | Should -Match 'sl7-personalization/firmware/qcom/x1e80100/microsoft/Romulus/qccdsp8380.mbn'
+        foreach ($relative in Get-Sl7RequiredFirmware) {
+            $text | Should -Match ([regex]::Escape("usr/lib/firmware/updates/$relative"))
+            $text | Should -Match ([regex]::Escape("sl7-personalization/firmware/$relative"))
+        }
         $text | Should -Match 'TRAILER!!!'
     }
 }

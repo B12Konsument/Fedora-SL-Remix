@@ -35,8 +35,18 @@ locked in `sources.lock.json`. It verifies the complete MSI before native
 administrative extraction. It never downloads individual firmware from an
 unofficial mirror.
 
-The GPU file is supplied during early boot. The remaining files are validated
-and applied to the live environment, then explicitly persisted by Anaconda.
+All ten files are supplied at their kernel firmware paths during early boot,
+including the ADSP/CDSP images and their device trees. The pre-pivot hook also
+copies them into the live overlay before userspace device probing. The live
+service validates the persisted payload and restores its SELinux labels;
+Anaconda explicitly validates and copies it into the installed system.
+
+Wi-Fi and Bluetooth firmware comes from Fedora's `atheros-firmware`, not the
+Microsoft extraction. The Romulus audio topology comes from `qcom-firmware`
+and the userspace audio profile from `alsa-ucm`. `sl7-firmware status` checks
+only the ten private files; a complete result does not establish that the
+radio firmware, audio topology, or running drivers are working. See
+[radio and speaker troubleshooting](radio-audio.md).
 
 ## Linux ISO creation
 
